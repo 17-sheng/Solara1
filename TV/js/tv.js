@@ -34,6 +34,21 @@ document.addEventListener('DOMContentLoaded', () => {
     const btnPlay = document.getElementById('btn-play');
     const btnMode = document.getElementById('btn-mode');
     const lyricsTextEl = document.getElementById('lyrics-text');
+    const toastEl = document.getElementById('toast');
+
+    // ================= 替代弹窗的 Toast 提示机制 =================
+    let toastTimeout;
+    function showToast(message, isSuccess = false) {
+        toastEl.innerText = message;
+        if (isSuccess) toastEl.classList.add('success');
+        else toastEl.classList.remove('success');
+        
+        toastEl.classList.add('show');
+        clearTimeout(toastTimeout);
+        toastTimeout = setTimeout(() => {
+            toastEl.classList.remove('show');
+        }, 3000);
+    }
 
     // ================= 三栏空间导航逻辑 =================
     let currentZone = 'left'; 
@@ -43,7 +58,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function getFocusables(zone) { return Array.from(document.querySelectorAll(`.tv-focusable[data-zone="${zone}"]`)); }
 
-    // 智能处理左侧列表的上下移动（跳过同一行的删除按钮）
     function moveVerticalLeft(direction) {
         const els = getFocusables('left');
         let idx = els.indexOf(document.activeElement);
@@ -54,7 +68,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const isSong = els[idx].classList.contains('song-item');
 
         if (direction === 'up') {
-            if (isInput) return; // 到顶了
+            if (isInput) return; 
             if (isSong) {
                 let target = idx - 1;
                 while(target >= 0 && els[target].classList.contains('delete-btn')) target--;
@@ -66,7 +80,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         } else if (direction === 'down') {
             if (isInput) {
-                if (els.length > 1) els[1].focus(); // 输入框往下进入第一首歌
+                if (els.length > 1) els[1].focus();
             } else if (isSong) {
                 let target = idx + 1;
                 while(target < els.length && els[target].classList.contains('delete-btn')) target++;
@@ -80,20 +94,36 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     window.addEventListener('keydown', (e) => {
-        // 如果焦点在输入框，允许左右键移动光标
-        if (document.activeElement.tagName === 'INPUT' && (e.keyCode === 37 || e.keyCode === 39)) {
-             // 只有在按下右键且处于输入框末尾时，才允许跳转到中栏（这里简化：直接按右键跳转到中栏）
-             if (e.keyCode === 39) {
-                 lastLeftIndex = 0;
-                 currentZone = 'middle';
-                 getFocusables('middle')[lastMiddleIndex].focus();
-                 e.preventDefault();
-             }
-             return; 
+        // 如果焦点在输入框，特殊处理
+        if (document.activeElement.tagName === 'INPUT') {
+            if (e.keyCode === 13) {
+                // 如果软键盘按下了确认/搜索键，直接触发搜索
+                const keyword = searchInput.value.trim();
+                if (keyword) {
+                    searchInput.blur(); // 隐藏软键盘
+                    searchSongs(keyword);
+                }
+                return;
+            }
+            if (e.keyCode === 39) { // 遥控器右键：进入中栏
+                lastLeftIndex = 0;
+                currentZone = 'middle';
+                getFocusables('middle')[lastMiddleIndex].focus();
+                e.preventDefault();
+                return;
+            }
+            if (e.keyCode === 40) { // 遥控器下键：进入列表
+                moveVerticalLeft('down');
+                e.preventDefault();
+                return;
+            }
+            // 允许左右移动输入框内的光标
+            return; 
         }
 
-        if ([37, 38, 39, 40, 13, 32].includes(e.keyCode) && document.activeElement.tagName !== 'INPUT') {
-            e.preventDefault(); // 阻止页面默认滚动
+        // 屏蔽常规元素的默认滚动
+        if ([37, 38, 39, 40, 13, 32].includes(e.keyCode)) {
+            e.preventDefault(); 
         }
 
         const focusables = getFocusables(currentZone);
@@ -117,7 +147,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (currentZone === 'right') {
                     if (currentIndex > 0) {
                         focusables[currentIndex - 1].focus();
-                    } else { // 从最左边的播放控制回到中栏
+                    } else { 
                         currentZone = 'middle';
                         getFocusables('middle')[lastMiddleIndex].focus();
                     }
@@ -127,7 +157,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (leftEls[lastLeftIndex]) leftEls[lastLeftIndex].focus();
                 } else if (currentZone === 'left') {
                     if (focusables[currentIndex].classList.contains('delete-btn')) {
-                        focusables[currentIndex - 1].focus(); // 从删除键回到歌曲
+                        focusables[currentIndex - 1].focus(); 
                     }
                 }
                 break;
@@ -135,8 +165,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (currentZone === 'left') {
                     lastLeftIndex = currentIndex;
                     if (focusables[currentIndex].classList.contains('song-item') && focusables[currentIndex + 1]?.classList.contains('delete-btn')) {
-                        focusables[currentIndex + 1].focus(); // 去删除键
-                    } else { // 跨越到中栏
+                        focusables[currentIndex + 1].focus(); 
+                    } else { 
                         currentZone = 'middle';
                         getFocusables('middle')[lastMiddleIndex].focus();
                     }
@@ -150,9 +180,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 break;
             case 13: // ENTER
             case 32: // SPACE
-                if (document.activeElement.tagName !== 'INPUT') {
-                    document.activeElement.click();
-                }
+                document.activeElement.click();
                 break;
         }
 
@@ -162,11 +190,12 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // ================= 逻辑操作绑定 =================
-    searchInput.focus(); // 初始焦点
+    searchInput.focus(); 
 
     btnSource.addEventListener('click', () => {
         currentSourceIndex = (currentSourceIndex + 1) % SOURCES.length;
         btnSource.innerText = `源: ${SOURCES[currentSourceIndex].name}`;
+        showToast(`已切换至: ${SOURCES[currentSourceIndex].name}`, true);
     });
 
     btnView.addEventListener('click', () => {
@@ -179,10 +208,17 @@ document.addEventListener('DOMContentLoaded', () => {
         renderList(currentView === 'search' ? searchResults : playlist);
     }
 
+    // 点击中间的搜索按钮读取输入框的值
     btnSearch.addEventListener('click', () => {
         const keyword = searchInput.value.trim();
-        if (keyword) searchSongs(keyword);
-        else alert("请输入搜索内容");
+        if (keyword) {
+            searchSongs(keyword);
+        } else {
+            showToast("搜索内容不能为空！");
+            // 引导用户回到输入框
+            currentZone = 'left';
+            searchInput.focus();
+        }
     });
 
     // 搜索与渲染逻辑
@@ -201,12 +237,13 @@ document.addEventListener('DOMContentLoaded', () => {
             if (songs && songs.length > 0) {
                 searchResults = songs.map(s => ({ ...s, target_source: source }));
                 updateView();
+                showToast("搜索完成", true);
             } else {
-                alert("未找到歌曲，请尝试切换音乐源");
+                showToast("未找到相关歌曲，请尝试切换音乐源");
             }
         } catch (error) {
             console.error(error);
-            alert("搜索失败，网络错误或API受限");
+            showToast("搜索失败：网络错误或 API 调用频繁");
         } finally {
             document.getElementById('loading').style.display = 'none';
         }
@@ -215,7 +252,8 @@ document.addEventListener('DOMContentLoaded', () => {
     function renderList(listToRender) {
         songListEl.innerHTML = '';
         if (listToRender.length === 0) {
-            songListEl.innerHTML = `<div style="padding: 20px; color:#aaa;">列表为空</div>`;
+            const tipText = currentView === 'search' ? '暂无搜索结果' : '播放列表为空，快去搜索添加吧';
+            songListEl.innerHTML = `<div style="padding: 20px; color:#aaa;">${tipText}</div>`;
             return;
         }
 
@@ -239,6 +277,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     playlist.push(song);
                     currentPlayIndex = playlist.length - 1;
                     playSongFromPlaylist(currentPlayIndex);
+                    showToast("已添加到播放列表", true);
                 } else {
                     playSongFromPlaylist(index);
                 }
@@ -255,6 +294,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 delBtn.addEventListener('click', (e) => {
                     e.stopPropagation();
                     playlist.splice(index, 1);
+                    showToast("已从列表中移除");
                     if (currentPlayIndex === index) {
                         audio.pause();
                         if (playlist.length > 0) playNext(); 
@@ -295,7 +335,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 audio.play();
                 btnPlay.innerText = '⏸️';
             } else {
-                alert("该歌曲无法播放 (可能因版权受限)");
+                showToast(`[${song.name}] 无法播放，可能是版权限制`);
                 playNext();
                 return;
             }
@@ -318,6 +358,7 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (error) {
             console.error(error);
             lyricsTextEl.innerText = "获取失败";
+            showToast("网络异常，无法获取播放地址");
         }
     }
 
@@ -326,15 +367,15 @@ document.addEventListener('DOMContentLoaded', () => {
         const mode = PLAY_MODES[currentModeIndex];
         btnMode.innerText = mode.icon;
         btnMode.title = mode.desc;
-        const oldLrc = lyricsTextEl.innerText;
-        lyricsTextEl.innerText = `已切换至：${mode.desc}`;
-        setTimeout(() => lyricsTextEl.innerText = oldLrc, 1500);
+        showToast(`循环模式: ${mode.desc}`, true);
     });
 
     btnPlay.addEventListener('click', () => {
         if (audio.src) {
             if (audio.paused) { audio.play(); btnPlay.innerText = '⏸️'; } 
             else { audio.pause(); btnPlay.innerText = '▶️'; }
+        } else {
+            showToast("当前没有可播放的歌曲");
         }
     });
 
