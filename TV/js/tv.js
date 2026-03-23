@@ -1,13 +1,15 @@
 // TV/js/tv.js
 
 document.addEventListener('DOMContentLoaded', () => {
-    // ================= 1. 遥控器空间导航逻辑 =================
-    const KEY_UP = 38, KEY_DOWN = 40, KEY_LEFT = 37, KEY_RIGHT = 39, KEY_ENTER = 13;
+    // ================= 1. 基础配置与 API 设置 =================
+    const API_BASE = 'https://music-api.gdstudio.xyz/api.php';
+    const DEFAULT_SOURCE = 'netease'; // 根据文档，稳定源推荐 netease
     
-    // 我们将界面分为左（列表）和右（控制区）两个 Zone
+    // ================= 2. 遥控器空间导航逻辑 =================
+    const KEY_UP = 38, KEY_DOWN = 40, KEY_LEFT = 37, KEY_RIGHT = 39, KEY_ENTER = 13;
     let currentZone = 'left'; 
-    let lastLeftFocusIndex = 0; // 记忆左侧焦点
-    let lastRightFocusIndex = 1; // 记忆右侧焦点（默认中间的播放键）
+    let lastLeftFocusIndex = 0; 
+    let lastRightFocusIndex = 1; // 右侧默认焦点落在播放按钮上
 
     function getFocusables(zone) {
         return Array.from(document.querySelectorAll(`.tv-focusable[data-zone="${zone}"]`));
@@ -27,9 +29,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 e.preventDefault();
                 break;
             case KEY_LEFT:
-                // 如果在右侧，向左按回到左侧区域
                 if (currentZone === 'right') {
-                    lastRightFocusIndex = currentIndex; // 记住离开前的位置
+                    lastRightFocusIndex = currentIndex; 
                     currentZone = 'left';
                     const leftFocusables = getFocusables('left');
                     if (leftFocusables[lastLeftFocusIndex]) leftFocusables[lastLeftFocusIndex].focus();
@@ -37,7 +38,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 e.preventDefault();
                 break;
             case KEY_RIGHT:
-                // 如果在左侧，向右按进入右侧控制区
                 if (currentZone === 'left') {
                     lastLeftFocusIndex = Math.max(0, currentIndex);
                     currentZone = 'right';
@@ -52,25 +52,25 @@ document.addEventListener('DOMContentLoaded', () => {
                 break;
         }
 
-        // 确保获取焦点的元素在可视区域内（针对长列表）
         if (document.activeElement && currentZone === 'left') {
             document.activeElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
         }
     });
 
-    // ================= 2. 音乐播放与 API 逻辑 =================
+    // ================= 3. 音乐播放与 GD Studio API 逻辑 =================
     const audio = document.getElementById('audio-player');
     const songListEl = document.getElementById('song-list');
     const searchBtn = document.getElementById('search-btn');
     const btnPlay = document.getElementById('btn-play');
+    const lyricsTextEl = document.getElementById('lyrics-text');
     
     let currentPlaylist = [];
     let currentPlayIndex = -1;
 
-    // 默认获取焦点
+    // 初始化焦点
     searchBtn.focus();
 
-    // 搜索按钮点击事件（在TV上输入比较麻烦，这里可以用 prompt 模拟，实际TV开发通常调用系统虚拟键盘）
+    // 搜索交互
     searchBtn.addEventListener('click', () => {
         const keyword = prompt("请输入要搜索的歌曲或歌手：", "周杰伦");
         if (keyword) {
@@ -78,28 +78,34 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // 调用原项目的 API 搜索歌曲
+    // 搜索 API
     async function searchSongs(keyword) {
         document.getElementById('loading').style.display = 'block';
         songListEl.innerHTML = '';
         try {
-            // 注意：因为我们部署在 /TV 下，原接口在根目录，所以用 /api/... 绝对路径
-            const res = await fetch(`/api/search?keywords=${encodeURIComponent(keyword)}`);
+            // 使用 GD Studio 的搜索接口
+            const url = `${API_BASE}?types=search&source=${DEFAULT_SOURCE}&name=${encodeURIComponent(keyword)}&count=30`;
+            const res = await fetch(url);
             const data = await res.json();
             
-            if (data.result && data.result.songs) {
-                currentPlaylist = data.result.songs;
+            // MKOnlinePlayer API 通常直接返回数组，或者包在对象里
+            const songs = Array.isArray(data) ? data : (data.data || data.result || []);
+            
+            if (songs && songs.length > 0) {
+                currentPlaylist = songs;
                 renderSongList(currentPlaylist);
+            } else {
+                alert("未找到歌曲，请尝试更换关键词");
             }
         } catch (error) {
             console.error("搜索失败", error);
-            alert("搜索失败，请检查网络");
+            alert("搜索失败，网络错误或API受限(5分钟50次)");
         } finally {
             document.getElementById('loading').style.display = 'none';
         }
     }
 
-    // 渲染左侧列表
+    // 渲染歌曲列表
     function renderSongList(songs) {
         songListEl.innerHTML = '';
         songs.forEach((song, index) => {
@@ -108,13 +114,14 @@ document.addEventListener('DOMContentLoaded', () => {
             li.tabIndex = 0;
             li.dataset.zone = 'left';
             
-            const artistName = song.artists ? song.artists.map(a => a.name).join(', ') : '未知歌手';
+            // GD Studio API 返回的 artist 是一个数组
+            const artistName = Array.isArray(song.artist) ? song.artist.join(' / ') : (song.artist || '未知歌手');
+            
             li.innerHTML = `
                 <div>${index + 1}. ${song.name}</div>
-                <div class="artist">${artistName}</div>
+                <div class="artist">${artistName} - ${song.album || '未知专辑'}</div>
             `;
             
-            // 点击/按确认键 播放该歌曲
             li.addEventListener('click', () => {
                 playSong(song, index);
             });
@@ -122,62 +129,79 @@ document.addEventListener('DOMContentLoaded', () => {
             songListEl.appendChild(li);
         });
 
-        // 渲染完后自动焦点到第一首歌
+        // 自动聚焦到第一首歌
         if (songs.length > 0) {
             setTimeout(() => {
-                getFocusables('left')[1].focus(); // [0]是搜索按钮，[1]是第一首歌
+                const focusables = getFocusables('left');
+                if (focusables.length > 1) focusables[1].focus(); 
             }, 100);
         }
     }
 
-    // 播放歌曲逻辑
+    // 核心：获取播放地址、封面、歌词并播放
     async function playSong(song, index) {
         currentPlayIndex = index;
-        document.getElementById('song-title').innerText = song.name;
-        document.getElementById('song-artist').innerText = song.artists ? song.artists.map(a => a.name).join(', ') : '';
+        const artistName = Array.isArray(song.artist) ? song.artist.join(' / ') : (song.artist || '');
         
+        document.getElementById('song-title').innerText = song.name;
+        document.getElementById('song-artist').innerText = artistName;
+        lyricsTextEl.innerText = "正在获取音频和歌词...";
+        
+        const source = song.source || DEFAULT_SOURCE;
+
         try {
-            // 获取播放 URL
-            const res = await fetch(`/api/song/url?id=${song.id}`);
-            const data = await res.json();
+            // 1. 获取播放 URL
+            const urlRes = await fetch(`${API_BASE}?types=url&source=${source}&id=${song.id}`);
+            const urlData = await urlRes.json();
             
-            if (data.data && data.data[0] && data.data[0].url) {
-                const url = data.data[0].url;
-                audio.src = url.replace('http://', 'https://'); // 强制 HTTPS 解决混合内容问题
+            if (urlData && urlData.url) {
+                audio.src = urlData.url.replace(/^http:\/\//i, 'https://'); // 强制 HTTPS
                 audio.play();
                 btnPlay.innerText = '⏸️';
-                
-                // 获取封面图 (原API似乎需要单独获取详情，这里简化使用默认或搜索结果中的图)
-                if (song.album && song.album.id) {
-                     fetchAlbumCover(song.album.id);
-                }
             } else {
-                alert("无版权或获取播放地址失败");
-                playNext(); // 自动跳下一首
+                alert("该歌曲无法播放 (可能因版权受限)");
+                playNext();
+                return;
             }
+
+            // 2. 获取专辑封面 (使用 pic_id)
+            if (song.pic_id) {
+                const picRes = await fetch(`${API_BASE}?types=pic&source=${source}&id=${song.pic_id}&size=500`);
+                const picData = await picRes.json();
+                if (picData && picData.url) {
+                    document.getElementById('album-cover').src = picData.url.replace(/^http:\/\//i, 'https://');
+                }
+            }
+
+            // 3. 获取歌词 (使用 lyric_id)
+            if (song.lyric_id) {
+                const lrcRes = await fetch(`${API_BASE}?types=lyric&source=${source}&id=${song.lyric_id}`);
+                const lrcData = await lrcRes.json();
+                if (lrcData && lrcData.lyric) {
+                    // 这里做一个简单的歌词展示，真正的滚动解析比较复杂，先展示文本
+                    const cleanLyric = lrcData.lyric.replace(/\[.*?\]/g, '').trim();
+                    lyricsTextEl.innerText = cleanLyric || "纯音乐，请欣赏";
+                } else {
+                    lyricsTextEl.innerText = "暂无歌词";
+                }
+            }
+
         } catch (error) {
-            console.error("播放失败", error);
+            console.error("播放流程出错", error);
+            lyricsTextEl.innerText = "获取失败";
         }
     }
 
-    async function fetchAlbumCover(albumId) {
-        try {
-            const res = await fetch(`/api/album?id=${albumId}`);
-            const data = await res.json();
-            if (data.album && data.album.picUrl) {
-                document.getElementById('album-cover').src = data.album.picUrl.replace('http://', 'https://');
-            }
-        } catch(e) {}
-    }
-
-    // 播放控制按钮逻辑
+    // ================= 4. 播放控制 =================
     btnPlay.addEventListener('click', () => {
-        if (audio.paused) {
-            audio.play();
-            btnPlay.innerText = '⏸️';
-        } else {
-            audio.pause();
-            btnPlay.innerText = '▶️';
+        if (audio.src) {
+            if (audio.paused) {
+                audio.play();
+                btnPlay.innerText = '⏸️';
+            } else {
+                audio.pause();
+                btnPlay.innerText = '▶️';
+            }
         }
     });
 
@@ -195,6 +219,5 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // 自动下一首
     audio.addEventListener('ended', playNext);
 });
