@@ -1,11 +1,11 @@
-/* TV/css/tv.css */
 :root {
     --bg-color: #0f0f0f;
     --panel-bg: #1e1e1e;
     --text-primary: #ffffff;
     --text-secondary: #aaaaaa;
-    --focus-color: #1DB954; /* 醒目的焦点绿 */
+    --focus-color: #1DB954; 
     --focus-bg: rgba(29, 185, 84, 0.2);
+    --danger-color: #e74c3c;
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -14,21 +14,17 @@ body {
     background-color: var(--bg-color);
     color: var(--text-primary);
     font-family: sans-serif;
-    overflow: hidden; /* TV端禁用全局滚动 */
+    overflow: hidden; 
     width: 100vw;
     height: 100vh;
-    cursor: none; /* 隐藏鼠标，强迫使用焦点交互 */
+    /* 取消了 cursor: none，允许鼠标操作 */
 }
 
-#tv-container {
-    display: flex;
-    width: 100%;
-    height: 100%;
-}
+#tv-container { display: flex; width: 100%; height: 100%; }
 
 /* ================= 左侧侧边栏 ================= */
 #sidebar {
-    width: 40%;
+    width: 45%;
     height: 100%;
     background-color: var(--panel-bg);
     display: flex;
@@ -36,41 +32,70 @@ body {
     border-right: 2px solid #333;
 }
 
-.search-header { padding: 30px; }
-.search-header h2 { font-size: 32px; margin-bottom: 20px; }
+.sidebar-header { padding: 30px 30px 10px 30px; }
+.sidebar-header h2 { font-size: 32px; margin-bottom: 20px; }
 
-#search-btn {
+.top-controls {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+.top-btn {
+    flex: 1;
     background: #333;
-    padding: 15px 20px;
+    padding: 12px 10px;
     border-radius: 8px;
-    font-size: 24px;
+    font-size: 18px;
     text-align: center;
+    cursor: pointer;
 }
 
 #song-list {
     flex: 1;
-    overflow-y: auto; /* 允许内部滚动 */
+    overflow-y: auto;
     list-style: none;
     padding: 10px 30px 30px 30px;
 }
+#song-list::-webkit-scrollbar { display: none; }
+
+/* 列表项布局 (包含删除按钮) */
+.list-row {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 10px;
+}
 
 .song-item {
+    flex: 1;
     padding: 20px;
-    margin-bottom: 10px;
     background-color: #2a2a2a;
     border-radius: 8px;
-    font-size: 24px;
+    font-size: 22px;
     display: flex;
     flex-direction: column;
+    cursor: pointer;
 }
-.song-item .artist { font-size: 18px; color: var(--text-secondary); margin-top: 8px; }
+.song-item .artist { font-size: 16px; color: var(--text-secondary); margin-top: 8px; }
 
-/* 隐藏滚动条但保留滚动功能 */
-#song-list::-webkit-scrollbar { display: none; }
+/* 正在播放的样式 */
+.song-item.playing { border-left: 6px solid var(--focus-color); background-color: #253328; }
+
+.delete-btn {
+    width: 60px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background-color: #3a2020;
+    color: var(--danger-color);
+    border-radius: 8px;
+    font-size: 24px;
+    cursor: pointer;
+}
 
 /* ================= 右侧主面板 ================= */
 #main-panel {
-    width: 60%;
+    width: 55%;
     height: 100%;
     display: flex;
     flex-direction: column;
@@ -80,61 +105,40 @@ body {
 
 .album-art-container { margin-bottom: 30px; }
 #album-cover {
-    width: 300px;
-    height: 300px;
-    border-radius: 16px;
-    object-fit: cover;
+    width: 300px; height: 300px;
+    border-radius: 16px; object-fit: cover;
     box-shadow: 0 10px 30px rgba(0,0,0,0.5);
 }
 
 .song-info { text-align: center; margin-bottom: 40px; }
-#song-title { font-size: 40px; margin-bottom: 10px; }
-#song-artist { font-size: 24px; color: var(--text-secondary); }
+#song-title { font-size: 36px; margin-bottom: 10px; }
+#song-artist { font-size: 22px; color: var(--text-secondary); }
 
-#controls {
-    display: flex;
-    gap: 40px;
-    margin-bottom: 40px;
-}
+#controls { display: flex; gap: 30px; margin-bottom: 40px; }
 
 .control-btn {
-    font-size: 40px;
-    width: 80px;
-    height: 80px;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    background-color: #333;
-    border-radius: 50%;
+    font-size: 32px; width: 70px; height: 70px;
+    display: flex; justify-content: center; align-items: center;
+    background-color: #333; border-radius: 50%;
+    cursor: pointer;
 }
 
-#lyrics-container {
-    flex: 1;
-    width: 100%;
-    overflow: hidden;
-    text-align: center;
-    position: relative;
-}
-#lyrics-text {
-    font-size: 28px;
-    color: var(--focus-color);
-    line-height: 1.5;
-    transition: transform 0.3s ease;
-}
+#lyrics-container { flex: 1; width: 100%; overflow: hidden; text-align: center; }
+#lyrics-text { font-size: 24px; color: var(--focus-color); line-height: 1.5; }
 
-/* ================= 核心焦点样式 (遥控器交互的灵魂) ================= */
-.tv-focusable {
-    transition: all 0.2s ease;
-    outline: 4px solid transparent;
-}
+/* ================= 焦点与悬停交互 ================= */
+.tv-focusable { transition: all 0.2s ease; outline: 4px solid transparent; }
 
+/* 遥控器焦点态 */
 .tv-focusable:focus {
-    outline: 6px solid var(--focus-color);
+    outline: 4px solid var(--focus-color);
     background-color: var(--focus-bg);
-    transform: scale(1.05); /* 放大 */
+    transform: scale(1.02);
     z-index: 10;
 }
+/* 鼠标悬停态 (增加对鼠标的支持) */
+.tv-focusable:hover {
+    background-color: rgba(255,255,255,0.1);
+}
 
-/* 针对特定元素的微调 */
-.control-btn:focus { transform: scale(1.15); }
-.song-item:focus { background-color: #3a3a3a; }
+.control-btn:focus, .control-btn:hover { transform: scale(1.1); }
