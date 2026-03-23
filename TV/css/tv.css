@@ -17,39 +17,33 @@ body {
     overflow: hidden; 
     width: 100vw;
     height: 100vh;
-    /* 取消了 cursor: none，允许鼠标操作 */
 }
 
 #tv-container { display: flex; width: 100%; height: 100%; }
 
-/* ================= 左侧侧边栏 ================= */
-#sidebar {
-    width: 45%;
+/* ================= 左栏 (占 35%) ================= */
+#left-panel {
+    width: 35%;
     height: 100%;
     background-color: var(--panel-bg);
     display: flex;
     flex-direction: column;
-    border-right: 2px solid #333;
+    border-right: 2px solid #222;
 }
 
-.sidebar-header { padding: 30px 30px 10px 30px; }
-.sidebar-header h2 { font-size: 32px; margin-bottom: 20px; }
+.search-header { padding: 30px 30px 10px 30px; }
 
-.top-controls {
-    display: flex;
-    gap: 10px;
-    margin-bottom: 10px;
-}
-
-.top-btn {
-    flex: 1;
-    background: #333;
-    padding: 12px 10px;
+#search-input {
+    width: 100%;
+    padding: 15px 20px;
+    font-size: 22px;
+    background-color: #2a2a2a;
+    color: #fff;
+    border: none;
     border-radius: 8px;
-    font-size: 18px;
-    text-align: center;
-    cursor: pointer;
+    outline: 4px solid transparent;
 }
+#search-input::placeholder { color: #888; }
 
 #song-list {
     flex: 1;
@@ -59,43 +53,47 @@ body {
 }
 #song-list::-webkit-scrollbar { display: none; }
 
-/* 列表项布局 (包含删除按钮) */
-.list-row {
-    display: flex;
-    gap: 10px;
-    margin-bottom: 10px;
-}
-
+.list-row { display: flex; gap: 10px; margin-bottom: 10px; }
 .song-item {
-    flex: 1;
-    padding: 20px;
-    background-color: #2a2a2a;
-    border-radius: 8px;
-    font-size: 22px;
-    display: flex;
-    flex-direction: column;
-    cursor: pointer;
+    flex: 1; padding: 15px; background-color: #2a2a2a;
+    border-radius: 8px; font-size: 20px; display: flex;
+    flex-direction: column; cursor: pointer;
 }
-.song-item .artist { font-size: 16px; color: var(--text-secondary); margin-top: 8px; }
-
-/* 正在播放的样式 */
+.song-item .artist { font-size: 15px; color: var(--text-secondary); margin-top: 8px; }
 .song-item.playing { border-left: 6px solid var(--focus-color); background-color: #253328; }
 
 .delete-btn {
-    width: 60px;
+    width: 50px; display: flex; justify-content: center; align-items: center;
+    background-color: #3a2020; color: var(--danger-color);
+    border-radius: 8px; font-size: 20px; cursor: pointer;
+}
+
+/* ================= 中栏 (占 15%) ================= */
+#middle-panel {
+    width: 15%;
+    height: 100%;
+    background-color: #151515;
     display: flex;
-    justify-content: center;
+    flex-direction: column;
+    justify-content: center; /* 居中对齐按钮 */
     align-items: center;
-    background-color: #3a2020;
-    color: var(--danger-color);
-    border-radius: 8px;
-    font-size: 24px;
+    gap: 30px;
+    border-right: 2px solid #222;
+}
+
+.middle-btn {
+    width: 80%;
+    background: #333;
+    padding: 20px 10px;
+    border-radius: 12px;
+    font-size: 20px;
+    text-align: center;
     cursor: pointer;
 }
 
-/* ================= 右侧主面板 ================= */
-#main-panel {
-    width: 55%;
+/* ================= 右栏 (占 50%) ================= */
+#right-panel {
+    width: 50%;
     height: 100%;
     display: flex;
     flex-direction: column;
@@ -103,42 +101,30 @@ body {
     padding: 50px;
 }
 
-.album-art-container { margin-bottom: 30px; }
-#album-cover {
-    width: 300px; height: 300px;
-    border-radius: 16px; object-fit: cover;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-}
+.album-art-container { margin-bottom: 25px; }
+#album-cover { width: 280px; height: 280px; border-radius: 16px; object-fit: cover; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
 
-.song-info { text-align: center; margin-bottom: 40px; }
-#song-title { font-size: 36px; margin-bottom: 10px; }
-#song-artist { font-size: 22px; color: var(--text-secondary); }
+.song-info { text-align: center; margin-bottom: 30px; }
+#song-title { font-size: 34px; margin-bottom: 10px; }
+#song-artist { font-size: 20px; color: var(--text-secondary); }
 
-#controls { display: flex; gap: 30px; margin-bottom: 40px; }
-
+#controls { display: flex; gap: 30px; margin-bottom: 30px; }
 .control-btn {
-    font-size: 32px; width: 70px; height: 70px;
+    font-size: 30px; width: 65px; height: 65px;
     display: flex; justify-content: center; align-items: center;
-    background-color: #333; border-radius: 50%;
-    cursor: pointer;
+    background-color: #333; border-radius: 50%; cursor: pointer;
 }
 
 #lyrics-container { flex: 1; width: 100%; overflow: hidden; text-align: center; }
-#lyrics-text { font-size: 24px; color: var(--focus-color); line-height: 1.5; }
+#lyrics-text { font-size: 22px; color: var(--focus-color); line-height: 1.5; }
 
-/* ================= 焦点与悬停交互 ================= */
+/* ================= 焦点交互 ================= */
 .tv-focusable { transition: all 0.2s ease; outline: 4px solid transparent; }
-
-/* 遥控器焦点态 */
 .tv-focusable:focus {
     outline: 4px solid var(--focus-color);
     background-color: var(--focus-bg);
-    transform: scale(1.02);
+    transform: scale(1.05);
     z-index: 10;
 }
-/* 鼠标悬停态 (增加对鼠标的支持) */
-.tv-focusable:hover {
-    background-color: rgba(255,255,255,0.1);
-}
-
-.control-btn:focus, .control-btn:hover { transform: scale(1.1); }
+.tv-focusable:hover { background-color: rgba(255,255,255,0.1); }
+#search-input:focus { transform: scale(1.02); } /* 输入框放大弧度小一点 */
