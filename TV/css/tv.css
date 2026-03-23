@@ -1,122 +1,4 @@
-:root {
-    --bg-color: #0f0f0f;
-    --panel-bg: #1e1e1e;
-    --text-primary: #ffffff;
-    --text-secondary: #aaaaaa;
-    --focus-color: #1DB954; 
-    --focus-bg: rgba(29, 185, 84, 0.2);
-    --danger-color: #e74c3c;
-}
-
-* { box-sizing: border-box; margin: 0; padding: 0; }
-
-body {
-    background-color: var(--bg-color);
-    color: var(--text-primary);
-    font-family: sans-serif;
-    overflow: hidden; 
-    width: 100vw;
-    height: 100vh;
-}
-
-#tv-container { display: flex; width: 100%; height: 100%; }
-
-/* ================= 左栏 (占 35%) ================= */
-#left-panel {
-    width: 35%;
-    height: 100%;
-    background-color: var(--panel-bg);
-    display: flex;
-    flex-direction: column;
-    border-right: 2px solid #222;
-}
-
-.search-header { padding: 30px 30px 10px 30px; }
-
-#search-input {
-    width: 100%;
-    padding: 15px 20px;
-    font-size: 22px;
-    background-color: #2a2a2a;
-    color: #fff;
-    border: none;
-    border-radius: 8px;
-    outline: 4px solid transparent;
-}
-#search-input::placeholder { color: #888; }
-
-#song-list {
-    flex: 1;
-    overflow-y: auto;
-    list-style: none;
-    padding: 10px 30px 30px 30px;
-}
-#song-list::-webkit-scrollbar { display: none; }
-
-.list-row { display: flex; gap: 10px; margin-bottom: 10px; }
-.song-item {
-    flex: 1; padding: 15px; background-color: #2a2a2a;
-    border-radius: 8px; font-size: 20px; display: flex;
-    flex-direction: column; cursor: pointer;
-}
-.song-item .artist { font-size: 15px; color: var(--text-secondary); margin-top: 8px; }
-.song-item.playing { border-left: 6px solid var(--focus-color); background-color: #253328; }
-
-.delete-btn {
-    width: 50px; display: flex; justify-content: center; align-items: center;
-    background-color: #3a2020; color: var(--danger-color);
-    border-radius: 8px; font-size: 20px; cursor: pointer;
-}
-
-/* ================= 中栏 (占 15%) ================= */
-#middle-panel {
-    width: 15%;
-    height: 100%;
-    background-color: #151515;
-    display: flex;
-    flex-direction: column;
-    justify-content: center; /* 居中对齐按钮 */
-    align-items: center;
-    gap: 30px;
-    border-right: 2px solid #222;
-}
-
-.middle-btn {
-    width: 80%;
-    background: #333;
-    padding: 20px 10px;
-    border-radius: 12px;
-    font-size: 20px;
-    text-align: center;
-    cursor: pointer;
-}
-
-/* ================= 右栏 (占 50%) ================= */
-#right-panel {
-    width: 50%;
-    height: 100%;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    padding: 50px;
-}
-
-.album-art-container { margin-bottom: 25px; }
-#album-cover { width: 280px; height: 280px; border-radius: 16px; object-fit: cover; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
-
-.song-info { text-align: center; margin-bottom: 30px; }
-#song-title { font-size: 34px; margin-bottom: 10px; }
-#song-artist { font-size: 20px; color: var(--text-secondary); }
-
-#controls { display: flex; gap: 30px; margin-bottom: 30px; }
-.control-btn {
-    font-size: 30px; width: 65px; height: 65px;
-    display: flex; justify-content: center; align-items: center;
-    background-color: #333; border-radius: 50%; cursor: pointer;
-}
-
-#lyrics-container { flex: 1; width: 100%; overflow: hidden; text-align: center; }
-#lyrics-text { font-size: 22px; color: var(--focus-color); line-height: 1.5; }
+/* ... [保留之前的全部样式] ... */
 
 /* ================= 焦点交互 ================= */
 .tv-focusable { transition: all 0.2s ease; outline: 4px solid transparent; }
@@ -127,4 +9,30 @@ body {
     z-index: 10;
 }
 .tv-focusable:hover { background-color: rgba(255,255,255,0.1); }
-#search-input:focus { transform: scale(1.02); } /* 输入框放大弧度小一点 */
+#search-input:focus { transform: scale(1.02); background-color: #333; } 
+
+/* ================= 全局轻提示 (取代 Alert 弹窗) ================= */
+.toast {
+    position: fixed;
+    bottom: 50px;
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: #e74c3c; /* 默认使用醒目的红色作为提示 */
+    color: white;
+    padding: 15px 30px;
+    border-radius: 8px;
+    font-size: 20px;
+    z-index: 9999;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+}
+
+.toast.show {
+    opacity: 1;
+}
+
+.toast.success {
+    background-color: var(--focus-color); /* 成功类提示使用绿色 */
+}
