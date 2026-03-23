@@ -11,11 +11,11 @@
         <!-- 左栏：搜索框与列表 (Zone: left) -->
         <div id="left-panel">
             <div class="search-header">
-                <!-- 原生输入框，电视获得焦点后按确定键会弹出自带软键盘 -->
+                <!-- 原生输入框 -->
                 <input type="text" id="search-input" class="tv-focusable" tabindex="0" data-zone="left" placeholder="输入歌手或歌名...">
             </div>
             
-            <div id="loading" style="display: none; padding: 20px; text-align: center;">加载中...</div>
+            <div id="loading" style="display: none; padding: 20px; text-align: center;">正在搜索中...</div>
             
             <ul id="song-list">
                 <!-- 列表将通过 JS 动态生成 -->
@@ -54,6 +54,9 @@
             </div>
         </div>
     </div>
+
+    <!-- 全局无干扰轻提示 (Toast) -->
+    <div id="toast" class="toast">提示信息</div>
 
     <audio id="audio-player" style="display:none;"></audio>
     <script src="js/tv.js"></script>
