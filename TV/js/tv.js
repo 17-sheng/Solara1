@@ -19,14 +19,15 @@ document.addEventListener('DOMContentLoaded', () => {
     ];
     let currentModeIndex = 0;
 
-    let currentView = 'search'; // 'search' 或 'playlist'
-    let searchResults = [];     // 搜索结果缓存
-    let playlist = [];          // 独立播放列表
-    let currentPlayIndex = -1;  // 当前播放歌曲在 playlist 中的索引
+    let currentView = 'search'; 
+    let searchResults = [];     
+    let playlist = [];          
+    let currentPlayIndex = -1;  
 
     // ================= DOM 元素 =================
-    const btnSource = document.getElementById('btn-source');
+    const searchInput = document.getElementById('search-input');
     const btnSearch = document.getElementById('btn-search');
+    const btnSource = document.getElementById('btn-source');
     const btnView = document.getElementById('btn-view');
     const songListEl = document.getElementById('song-list');
     const audio = document.getElementById('audio-player');
@@ -34,15 +35,66 @@ document.addEventListener('DOMContentLoaded', () => {
     const btnMode = document.getElementById('btn-mode');
     const lyricsTextEl = document.getElementById('lyrics-text');
 
-    // ================= 空间导航 (Zone: top, left, right) =================
-    let currentZone = 'top'; 
-    let lastTopIndex = 0, lastLeftIndex = 0, lastRightIndex = 2; // 默认聚焦播放键
+    // ================= 三栏空间导航逻辑 =================
+    let currentZone = 'left'; 
+    let lastLeftIndex = 0;
+    let lastMiddleIndex = 0;
+    let lastRightIndex = 2; // 默认聚焦到播放键
 
     function getFocusables(zone) { return Array.from(document.querySelectorAll(`.tv-focusable[data-zone="${zone}"]`)); }
 
+    // 智能处理左侧列表的上下移动（跳过同一行的删除按钮）
+    function moveVerticalLeft(direction) {
+        const els = getFocusables('left');
+        let idx = els.indexOf(document.activeElement);
+        if (idx === -1) idx = 0;
+
+        const isInput = els[idx].tagName === 'INPUT';
+        const isDelete = els[idx].classList.contains('delete-btn');
+        const isSong = els[idx].classList.contains('song-item');
+
+        if (direction === 'up') {
+            if (isInput) return; // 到顶了
+            if (isSong) {
+                let target = idx - 1;
+                while(target >= 0 && els[target].classList.contains('delete-btn')) target--;
+                els[target].focus();
+            } else if (isDelete) {
+                let target = idx - 1;
+                while(target >= 0 && !els[target].classList.contains('delete-btn') && els[target].tagName !== 'INPUT') target--;
+                if (target >= 0) els[target].focus();
+            }
+        } else if (direction === 'down') {
+            if (isInput) {
+                if (els.length > 1) els[1].focus(); // 输入框往下进入第一首歌
+            } else if (isSong) {
+                let target = idx + 1;
+                while(target < els.length && els[target].classList.contains('delete-btn')) target++;
+                if (target < els.length) els[target].focus();
+            } else if (isDelete) {
+                let target = idx + 1;
+                while(target < els.length && !els[target].classList.contains('delete-btn')) target++;
+                if (target < els.length) els[target].focus();
+            }
+        }
+    }
+
     window.addEventListener('keydown', (e) => {
-        // 屏蔽部分默认按键以防页面乱滚
-        if ([37, 38, 39, 40, 13, 32].includes(e.keyCode)) e.preventDefault();
+        // 如果焦点在输入框，允许左右键移动光标
+        if (document.activeElement.tagName === 'INPUT' && (e.keyCode === 37 || e.keyCode === 39)) {
+             // 只有在按下右键且处于输入框末尾时，才允许跳转到中栏（这里简化：直接按右键跳转到中栏）
+             if (e.keyCode === 39) {
+                 lastLeftIndex = 0;
+                 currentZone = 'middle';
+                 getFocusables('middle')[lastMiddleIndex].focus();
+                 e.preventDefault();
+             }
+             return; 
+        }
+
+        if ([37, 38, 39, 40, 13, 32].includes(e.keyCode) && document.activeElement.tagName !== 'INPUT') {
+            e.preventDefault(); // 阻止页面默认滚动
+        }
 
         const focusables = getFocusables(currentZone);
         let currentIndex = focusables.indexOf(document.activeElement);
@@ -50,109 +102,94 @@ document.addEventListener('DOMContentLoaded', () => {
 
         switch (e.keyCode) {
             case 38: // UP
-                if (currentZone === 'left') {
-                    // 如果在列表顶部，回到 top 区
-                    if (currentIndex === 0 || currentIndex === 1) { // 考虑到 song 和 delete 按钮
-                        currentZone = 'top';
-                        getFocusables('top')[lastTopIndex].focus();
-                    } else {
-                        // 列表内向上移一行 (2个元素为一行: song, delete)
-                        const prevTarget = currentIndex - 2;
-                        if (focusables[prevTarget]) focusables[prevTarget].focus();
-                        else focusables[0].focus();
-                    }
-                } else if (currentZone === 'top') {
+                if (currentZone === 'left') moveVerticalLeft('up');
+                else if (currentZone === 'middle') {
                     if (currentIndex > 0) focusables[currentIndex - 1].focus();
-                } else if (currentZone === 'right') {
-                    // 无操作，保持原位
                 }
                 break;
             case 40: // DOWN
-                if (currentZone === 'top') {
-                    lastTopIndex = currentIndex;
-                    currentZone = 'left';
-                    const leftEls = getFocusables('left');
-                    if (leftEls[lastLeftIndex]) leftEls[lastLeftIndex].focus();
-                    else if (leftEls.length > 0) leftEls[0].focus();
-                } else if (currentZone === 'left') {
-                    // 列表内向下移一行
-                    if (currentIndex + 2 < focusables.length) focusables[currentIndex + 2].focus();
+                if (currentZone === 'left') moveVerticalLeft('down');
+                else if (currentZone === 'middle') {
+                    if (currentIndex < focusables.length - 1) focusables[currentIndex + 1].focus();
                 }
                 break;
             case 37: // LEFT
                 if (currentZone === 'right') {
-                    lastRightIndex = currentIndex;
+                    if (currentIndex > 0) {
+                        focusables[currentIndex - 1].focus();
+                    } else { // 从最左边的播放控制回到中栏
+                        currentZone = 'middle';
+                        getFocusables('middle')[lastMiddleIndex].focus();
+                    }
+                } else if (currentZone === 'middle') {
                     currentZone = 'left';
                     const leftEls = getFocusables('left');
                     if (leftEls[lastLeftIndex]) leftEls[lastLeftIndex].focus();
-                    else if (leftEls.length > 0) leftEls[0].focus();
                 } else if (currentZone === 'left') {
-                    // 左移（比如从删除按钮回到歌曲主体）
-                    if (currentIndex > 0) focusables[currentIndex - 1].focus();
-                } else if (currentZone === 'top') {
-                    if (currentIndex > 0) focusables[currentIndex - 1].focus();
+                    if (focusables[currentIndex].classList.contains('delete-btn')) {
+                        focusables[currentIndex - 1].focus(); // 从删除键回到歌曲
+                    }
                 }
                 break;
             case 39: // RIGHT
                 if (currentZone === 'left') {
                     lastLeftIndex = currentIndex;
-                    // 判断右侧是否有元素（同一行的删除按钮）
-                    if (focusables[currentIndex + 1] && focusables[currentIndex + 1].classList.contains('delete-btn')) {
-                        focusables[currentIndex + 1].focus();
-                    } else {
-                        // 进入右侧播放控制区
-                        currentZone = 'right';
-                        const rightEls = getFocusables('right');
-                        if (rightEls[lastRightIndex]) rightEls[lastRightIndex].focus();
+                    if (focusables[currentIndex].classList.contains('song-item') && focusables[currentIndex + 1]?.classList.contains('delete-btn')) {
+                        focusables[currentIndex + 1].focus(); // 去删除键
+                    } else { // 跨越到中栏
+                        currentZone = 'middle';
+                        getFocusables('middle')[lastMiddleIndex].focus();
                     }
-                } else if (currentZone === 'top') {
-                    if (currentIndex < focusables.length - 1) focusables[currentIndex + 1].focus();
+                } else if (currentZone === 'middle') {
+                    lastMiddleIndex = currentIndex;
+                    currentZone = 'right';
+                    getFocusables('right')[lastRightIndex].focus();
                 } else if (currentZone === 'right') {
                     if (currentIndex < focusables.length - 1) focusables[currentIndex + 1].focus();
                 }
                 break;
             case 13: // ENTER
             case 32: // SPACE
-                if (document.activeElement) document.activeElement.click();
+                if (document.activeElement.tagName !== 'INPUT') {
+                    document.activeElement.click();
+                }
                 break;
         }
 
-        if (document.activeElement && currentZone === 'left') {
+        if (document.activeElement && currentZone === 'left' && document.activeElement.tagName !== 'INPUT') {
             document.activeElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
         }
     });
 
-    // ================= 顶部操作栏逻辑 =================
-    btnSource.focus(); // 初始焦点
+    // ================= 逻辑操作绑定 =================
+    searchInput.focus(); // 初始焦点
 
-    // 切换搜索源
     btnSource.addEventListener('click', () => {
         currentSourceIndex = (currentSourceIndex + 1) % SOURCES.length;
         btnSource.innerText = `源: ${SOURCES[currentSourceIndex].name}`;
     });
 
-    // 切换视图
     btnView.addEventListener('click', () => {
         currentView = currentView === 'search' ? 'playlist' : 'search';
         updateView();
     });
 
     function updateView() {
-        btnView.innerText = currentView === 'search' ? `视图: 搜索结果` : `视图: 播放列表(${playlist.length})`;
+        btnView.innerText = currentView === 'search' ? `视图: 搜索` : `视图: 列表(${playlist.length})`;
         renderList(currentView === 'search' ? searchResults : playlist);
     }
 
-    // 搜索交互
     btnSearch.addEventListener('click', () => {
-        const keyword = prompt("请输入要搜索的歌曲或歌手：", "");
+        const keyword = searchInput.value.trim();
         if (keyword) searchSongs(keyword);
+        else alert("请输入搜索内容");
     });
 
-    // ================= 搜索与列表渲染 =================
+    // 搜索与渲染逻辑
     async function searchSongs(keyword) {
         document.getElementById('loading').style.display = 'block';
         songListEl.innerHTML = '';
-        currentView = 'search'; // 搜索后自动切到搜索视图
+        currentView = 'search'; 
         
         const source = SOURCES[currentSourceIndex].id;
         try {
@@ -162,7 +199,6 @@ document.addEventListener('DOMContentLoaded', () => {
             
             const songs = Array.isArray(data) ? data : (data.data || data.result || []);
             if (songs && songs.length > 0) {
-                // 将当前源信息注入歌曲对象
                 searchResults = songs.map(s => ({ ...s, target_source: source }));
                 updateView();
             } else {
@@ -187,7 +223,6 @@ document.addEventListener('DOMContentLoaded', () => {
             const row = document.createElement('div');
             row.className = 'list-row';
 
-            // 歌曲主体按钮
             const songDiv = document.createElement('div');
             songDiv.className = `song-item tv-focusable ${currentView === 'playlist' && currentPlayIndex === index ? 'playing' : ''}`;
             songDiv.tabIndex = 0;
@@ -199,21 +234,17 @@ document.addEventListener('DOMContentLoaded', () => {
                 <div class="artist">${artistName} - ${song.album || '未知专辑'}</div>
             `;
             
-            // 点击事件
             songDiv.addEventListener('click', () => {
                 if (currentView === 'search') {
-                    // 搜索视图：添加到播放列表并立刻播放
                     playlist.push(song);
-                    currentPlayIndex = playlist.length - 1; // 播放最后一首
+                    currentPlayIndex = playlist.length - 1;
                     playSongFromPlaylist(currentPlayIndex);
                 } else {
-                    // 播放列表视图：直接播放
                     playSongFromPlaylist(index);
                 }
             });
             row.appendChild(songDiv);
 
-            // 如果是播放列表视图，添加删除按钮
             if (currentView === 'playlist') {
                 const delBtn = document.createElement('div');
                 delBtn.className = 'delete-btn tv-focusable';
@@ -224,10 +255,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 delBtn.addEventListener('click', (e) => {
                     e.stopPropagation();
                     playlist.splice(index, 1);
-                    // 修正当前播放索引
                     if (currentPlayIndex === index) {
                         audio.pause();
-                        if (playlist.length > 0) playNext(); // 删除当前播放，播下一首
+                        if (playlist.length > 0) playNext(); 
                         else currentPlayIndex = -1;
                     } else if (currentPlayIndex > index) {
                         currentPlayIndex--; 
@@ -241,13 +271,12 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // ================= 播放控制引擎 =================
+    // 播放引擎
     async function playSongFromPlaylist(index) {
         if (index < 0 || index >= playlist.length) return;
         currentPlayIndex = index;
         const song = playlist[index];
         
-        // 刷新列表 UI (高亮正在播放的行)
         if (currentView === 'playlist') updateView();
         
         const artistName = Array.isArray(song.artist) ? song.artist.join(' / ') : (song.artist || '');
@@ -258,7 +287,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const source = song.target_source || song.source || 'netease';
 
         try {
-            // 获取 URL
             const urlRes = await fetch(`${API_BASE}?types=url&source=${source}&id=${song.id}`);
             const urlData = await urlRes.json();
             
@@ -272,14 +300,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
-            // 获取封面
             if (song.pic_id) {
                 const picRes = await fetch(`${API_BASE}?types=pic&source=${source}&id=${song.pic_id}&size=500`);
                 const picData = await picRes.json();
                 if (picData && picData.url) document.getElementById('album-cover').src = picData.url.replace(/^http:\/\//i, 'https://');
             }
 
-            // 获取歌词
             if (song.lyric_id) {
                 const lrcRes = await fetch(`${API_BASE}?types=lyric&source=${source}&id=${song.lyric_id}`);
                 const lrcData = await lrcRes.json();
@@ -290,24 +316,21 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
         } catch (error) {
-            console.error("播放流程出错", error);
+            console.error(error);
             lyricsTextEl.innerText = "获取失败";
         }
     }
 
-    // 循环模式切换
     btnMode.addEventListener('click', () => {
         currentModeIndex = (currentModeIndex + 1) % PLAY_MODES.length;
         const mode = PLAY_MODES[currentModeIndex];
         btnMode.innerText = mode.icon;
         btnMode.title = mode.desc;
-        // 给出简单的提示 (由于TV没法悬停看title，所以暂时用歌词区域闪一下提示)
         const oldLrc = lyricsTextEl.innerText;
         lyricsTextEl.innerText = `已切换至：${mode.desc}`;
         setTimeout(() => lyricsTextEl.innerText = oldLrc, 1500);
     });
 
-    // 播放逻辑
     btnPlay.addEventListener('click', () => {
         if (audio.src) {
             if (audio.paused) { audio.play(); btnPlay.innerText = '⏸️'; } 
@@ -336,7 +359,6 @@ document.addEventListener('DOMContentLoaded', () => {
             if (nextIndex >= playlist.length) {
                 if (mode === 'loop') nextIndex = 0;
                 else if (mode === 'sequence') {
-                    // 顺序播放到底部，停止
                     audio.pause();
                     btnPlay.innerText = '▶️';
                     return; 
@@ -359,6 +381,5 @@ document.addEventListener('DOMContentLoaded', () => {
         playSongFromPlaylist(prevIndex);
     }
 
-    // 歌曲结束自动触发
     audio.addEventListener('ended', playNext);
 });
