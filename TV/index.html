@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Solara TV</title>
+    <link rel="stylesheet" href="css/tv.css">
+</head>
+<body>
+    <div id="tv-container">
+        <!-- 左侧：搜索与播放列表 (Zone: left) -->
+        <div id="sidebar">
+            <div class="search-header">
+                <h2>Solara TV</h2>
+                <!-- 搜索框，获得焦点时按确定键可触发输入键盘 -->
+                <div id="search-btn" class="tv-focusable" tabindex="0" data-zone="left">🔍 点击搜索音乐</div>
+            </div>
+            
+            <div id="loading" style="display: none; padding: 20px;">加载中...</div>
+            
+            <ul id="song-list">
+                <!-- 列表将通过 JS 动态生成 -->
+            </ul>
+        </div>
+
+        <!-- 右侧：播放控制与歌词 (Zone: right) -->
+        <div id="main-panel">
+            <div class="album-art-container">
+                <img id="album-cover" src="https://via.placeholder.com/400" alt="Album Cover">
+            </div>
+            
+            <div class="song-info">
+                <h1 id="song-title">Solara 音乐</h1>
+                <p id="song-artist">准备播放</p>
+            </div>
+
+            <!-- 播放控制台 -->
+            <div id="controls">
+                <div id="btn-prev" class="tv-focusable control-btn" tabindex="0" data-zone="right">⏮</div>
+                <div id="btn-play" class="tv-focusable control-btn" tabindex="0" data-zone="right">▶️</div>
+                <div id="btn-next" class="tv-focusable control-btn" tabindex="0" data-zone="right">⏭</div>
+            </div>
+
+            <!-- 歌词显示区 -->
+            <div id="lyrics-container">
+                <div id="lyrics-text">暂无歌词</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 隐藏的音频播放器 -->
+    <audio id="audio-player" style="display:none;"></audio>
+
+    <script src="js/tv.js"></script>
+</body>
+</html>
