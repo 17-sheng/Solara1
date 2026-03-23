@@ -3,20 +3,24 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Solara TV</title>
+    <title>Solara TV Pro</title>
     <link rel="stylesheet" href="css/tv.css">
 </head>
 <body>
     <div id="tv-container">
-        <!-- 左侧：搜索与播放列表 (Zone: left) -->
+        <!-- 左侧：工具栏与列表区 (Zone: top / left) -->
         <div id="sidebar">
-            <div class="search-header">
+            <div class="sidebar-header">
                 <h2>Solara TV</h2>
-                <!-- 搜索框，获得焦点时按确定键可触发输入键盘 -->
-                <div id="search-btn" class="tv-focusable" tabindex="0" data-zone="left">🔍 点击搜索音乐</div>
+                <div class="top-controls">
+                    <!-- 顶部可聚焦按钮区 (Zone: top) -->
+                    <div id="btn-source" class="tv-focusable top-btn" tabindex="0" data-zone="top">源: 网易云</div>
+                    <div id="btn-search" class="tv-focusable top-btn" tabindex="0" data-zone="top">🔍 搜索</div>
+                    <div id="btn-view" class="tv-focusable top-btn" tabindex="0" data-zone="top">视图: 搜索结果</div>
+                </div>
             </div>
             
-            <div id="loading" style="display: none; padding: 20px;">加载中...</div>
+            <div id="loading" style="display: none; padding: 20px; text-align: center;">加载中...</div>
             
             <ul id="song-list">
                 <!-- 列表将通过 JS 动态生成 -->
@@ -36,9 +40,10 @@
 
             <!-- 播放控制台 -->
             <div id="controls">
-                <div id="btn-prev" class="tv-focusable control-btn" tabindex="0" data-zone="right">⏮</div>
-                <div id="btn-play" class="tv-focusable control-btn" tabindex="0" data-zone="right">▶️</div>
-                <div id="btn-next" class="tv-focusable control-btn" tabindex="0" data-zone="right">⏭</div>
+                <div id="btn-mode" class="tv-focusable control-btn" tabindex="0" data-zone="right" title="循环模式">🔁</div>
+                <div id="btn-prev" class="tv-focusable control-btn" tabindex="0" data-zone="right" title="上一首">⏮</div>
+                <div id="btn-play" class="tv-focusable control-btn" tabindex="0" data-zone="right" title="播放/暂停">▶️</div>
+                <div id="btn-next" class="tv-focusable control-btn" tabindex="0" data-zone="right" title="下一首">⏭</div>
             </div>
 
             <!-- 歌词显示区 -->
@@ -48,9 +53,7 @@
         </div>
     </div>
 
-    <!-- 隐藏的音频播放器 -->
     <audio id="audio-player" style="display:none;"></audio>
-
     <script src="js/tv.js"></script>
 </body>
 </html>
