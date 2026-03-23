@@ -8,16 +8,11 @@
 </head>
 <body>
     <div id="tv-container">
-        <!-- 左侧：工具栏与列表区 (Zone: top / left) -->
-        <div id="sidebar">
-            <div class="sidebar-header">
-                <h2>Solara TV</h2>
-                <div class="top-controls">
-                    <!-- 顶部可聚焦按钮区 (Zone: top) -->
-                    <div id="btn-source" class="tv-focusable top-btn" tabindex="0" data-zone="top">源: 网易云</div>
-                    <div id="btn-search" class="tv-focusable top-btn" tabindex="0" data-zone="top">🔍 搜索</div>
-                    <div id="btn-view" class="tv-focusable top-btn" tabindex="0" data-zone="top">视图: 搜索结果</div>
-                </div>
+        <!-- 左栏：搜索框与列表 (Zone: left) -->
+        <div id="left-panel">
+            <div class="search-header">
+                <!-- 原生输入框，电视获得焦点后按确定键会弹出自带软键盘 -->
+                <input type="text" id="search-input" class="tv-focusable" tabindex="0" data-zone="left" placeholder="输入歌手或歌名...">
             </div>
             
             <div id="loading" style="display: none; padding: 20px; text-align: center;">加载中...</div>
@@ -27,8 +22,15 @@
             </ul>
         </div>
 
-        <!-- 右侧：播放控制与歌词 (Zone: right) -->
-        <div id="main-panel">
+        <!-- 中栏：核心功能按钮区 (Zone: middle) -->
+        <div id="middle-panel">
+            <div id="btn-search" class="tv-focusable middle-btn" tabindex="0" data-zone="middle">🔍 搜索</div>
+            <div id="btn-source" class="tv-focusable middle-btn" tabindex="0" data-zone="middle">源: 网易云</div>
+            <div id="btn-view" class="tv-focusable middle-btn" tabindex="0" data-zone="middle">视图: 搜索</div>
+        </div>
+
+        <!-- 右栏：播放控制与歌词 (Zone: right) -->
+        <div id="right-panel">
             <div class="album-art-container">
                 <img id="album-cover" src="https://via.placeholder.com/400" alt="Album Cover">
             </div>
