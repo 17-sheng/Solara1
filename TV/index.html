@@ -3,62 +3,85 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Solara TV Pro</title>
+    <title>Solara TV</title>
     <link rel="stylesheet" href="css/tv.css">
 </head>
 <body>
     <div id="tv-container">
-        <!-- 左栏：搜索框与列表 (Zone: left) -->
+        <!-- ===== 左栏：搜索 + 歌曲列表 (35%) ===== -->
         <div id="left-panel">
-            <div class="search-header">
-                <!-- 原生输入框 -->
-                <input type="text" id="search-input" class="tv-focusable" tabindex="0" data-zone="left" placeholder="输入歌手或歌名...">
+            <!-- 搜索框 -->
+            <div id="search-bar">
+                <input id="search-input" type="text" placeholder="输入歌名/歌手搜索..."
+                       class="tv-focusable" data-zone="left" data-nav-id="input" tabindex="0">
             </div>
-            
-            <div id="loading" style="display: none; padding: 20px; text-align: center;">正在搜索中...</div>
-            
-            <ul id="song-list">
-                <!-- 列表将通过 JS 动态生成 -->
-            </ul>
+            <!-- 功能按钮 -->
+            <div id="action-bar">
+                <button id="btn-search" class="action-btn tv-focusable" data-zone="left" data-nav-id="btn-search" tabindex="0">🔍 搜索</button>
+                <button id="btn-source" class="action-btn tv-focusable" data-zone="left" data-nav-id="btn-source" tabindex="0">源: 网易云</button>
+                <button id="btn-view"   class="action-btn tv-focusable" data-zone="left" data-nav-id="btn-view" tabindex="0">搜索结果</button>
+            </div>
+            <!-- 歌曲列表 -->
+            <div id="song-list-wrapper">
+                <div id="loading"><span class="spinner"></span>搜索中...</div>
+                <div id="song-list">
+                    <div class="empty-tip">
+                        <span class="icon">🎵</span>
+                        使用遥控器选中搜索框<br>输入关键词开始搜索
+                    </div>
+                </div>
+            </div>
         </div>
 
-        <!-- 中栏：核心功能按钮区 (Zone: middle) -->
-        <div id="middle-panel">
-            <div id="btn-search" class="tv-focusable middle-btn" tabindex="0" data-zone="middle">🔍 搜索</div>
-            <div id="btn-source" class="tv-focusable middle-btn" tabindex="0" data-zone="middle">源: 网易云</div>
-            <div id="btn-view" class="tv-focusable middle-btn" tabindex="0" data-zone="middle">视图: 搜索</div>
-        </div>
-
-        <!-- 右栏：播放控制与歌词 (Zone: right) -->
+        <!-- ===== 右栏：播放器 (65%) ===== -->
         <div id="right-panel">
-            <div class="album-art-container">
-                <img id="album-cover" src="https://via.placeholder.com/400" alt="Album Cover">
-            </div>
-            
-            <div class="song-info">
-                <h1 id="song-title">Solara 音乐</h1>
-                <p id="song-artist">准备播放</p>
-            </div>
-
-            <!-- 播放控制台 -->
-            <div id="controls">
-                <div id="btn-mode" class="tv-focusable control-btn" tabindex="0" data-zone="right" title="循环模式">🔁</div>
-                <div id="btn-prev" class="tv-focusable control-btn" tabindex="0" data-zone="right" title="上一首">⏮</div>
-                <div id="btn-play" class="tv-focusable control-btn" tabindex="0" data-zone="right" title="播放/暂停">▶️</div>
-                <div id="btn-next" class="tv-focusable control-btn" tabindex="0" data-zone="right" title="下一首">⏭</div>
-            </div>
-
-            <!-- 歌词显示区 -->
-            <div id="lyrics-container">
-                <div id="lyrics-text">暂无歌词</div>
+            <div id="bg-blur"></div>
+            <div id="player-content">
+                <!-- 专辑封面 -->
+                <div id="album-cover-wrapper">
+                    <img id="album-cover" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 400'%3E%3Crect fill='%231a1a2e' width='400' height='400'/%3E%3Ctext x='200' y='200' text-anchor='middle' dominant-baseline='central' font-size='80' fill='%23333'%3E🎵%3C/text%3E%3C/svg%3E" alt="封面">
+                </div>
+                <!-- 歌曲信息 -->
+                <div id="song-info">
+                    <div id="song-title">Solara TV</div>
+                    <div id="song-artist">准备播放</div>
+                </div>
+                <!-- 进度条 -->
+                <div id="progress-bar-wrapper">
+                    <span id="progress-time-current">00:00</span>
+                    <div id="progress-track" class="tv-focusable" data-zone="right" data-nav-id="progress" tabindex="0">
+                        <div id="progress-fill"></div>
+                    </div>
+                    <span id="progress-time-total">00:00</span>
+                </div>
+                <!-- 播放控制 -->
+                <div id="controls">
+                    <div id="btn-mode" class="ctrl-btn tv-focusable" data-zone="right" data-nav-id="mode" tabindex="0" title="列表循环">🔁</div>
+                    <div id="btn-prev" class="ctrl-btn tv-focusable" data-zone="right" data-nav-id="prev" tabindex="0">⏮</div>
+                    <div id="btn-play" class="ctrl-btn play-btn tv-focusable" data-zone="right" data-nav-id="play" tabindex="0">▶️</div>
+                    <div id="btn-next" class="ctrl-btn tv-focusable" data-zone="right" data-nav-id="next" tabindex="0">⏭</div>
+                </div>
+                <!-- 歌词 -->
+                <div id="lyrics-container">
+                    <div id="lyrics-text">暂无歌词</div>
+                </div>
             </div>
         </div>
     </div>
 
-    <!-- 全局无干扰轻提示 (Toast) -->
+    <!-- Toast -->
     <div id="toast" class="toast">提示信息</div>
 
-    <audio id="audio-player" style="display:none;"></audio>
+    <!-- 导航提示 -->
+    <div id="nav-hint">
+        <span class="hint-key"><kbd>↑↓←→</kbd> 导航</span>
+        <span class="hint-key"><kbd>OK</kbd> 确认</span>
+        <span class="hint-key"><kbd>空格</kbd> 播放/暂停</span>
+    </div>
+
+    <!-- Audio -->
+    <audio id="audio-player" preload="auto"></audio>
+
     <script src="js/tv.js"></script>
 </body>
 </html>
