@@ -8,18 +8,12 @@
 </head>
 <body>
     <div id="tv-container">
-        <!-- ===== 左栏：搜索 + 歌曲列表 (35%) ===== -->
+        <!-- ===== 左栏：搜索 + 歌曲列表 (33%) ===== -->
         <div id="left-panel">
             <!-- 搜索框 -->
             <div id="search-bar">
                 <input id="search-input" type="text" placeholder="输入歌名/歌手搜索..."
-                       class="tv-focusable" data-zone="left" data-nav-id="input" tabindex="0">
-            </div>
-            <!-- 功能按钮 -->
-            <div id="action-bar">
-                <button id="btn-search" class="action-btn tv-focusable" data-zone="left" data-nav-id="btn-search" tabindex="0">🔍 搜索</button>
-                <button id="btn-source" class="action-btn tv-focusable" data-zone="left" data-nav-id="btn-source" tabindex="0">源: 网易云</button>
-                <button id="btn-view"   class="action-btn tv-focusable" data-zone="left" data-nav-id="btn-view" tabindex="0">搜索结果</button>
+                       class="tv-focusable" data-zone="left" tabindex="0">
             </div>
             <!-- 歌曲列表 -->
             <div id="song-list-wrapper">
@@ -27,13 +21,50 @@
                 <div id="song-list">
                     <div class="empty-tip">
                         <span class="icon">🎵</span>
-                        使用遥控器选中搜索框<br>输入关键词开始搜索
+                        输入关键词搜索歌曲
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- ===== 右栏：播放器 (65%) ===== -->
+        <!-- ===== 中间：控制按钮竖排 ===== -->
+        <div id="center-controls">
+            <div id="btn-search" class="ctrl-item tv-focusable" data-zone="ctrl" tabindex="0" title="搜索">
+                <span class="ctrl-icon">🔍</span>
+                <span class="ctrl-label">搜索</span>
+            </div>
+            <div id="btn-source" class="ctrl-item tv-focusable" data-zone="ctrl" tabindex="0" title="切换音源">
+                <span class="ctrl-icon">📡</span>
+                <span class="ctrl-label">网易云</span>
+            </div>
+
+            <div class="ctrl-divider"></div>
+
+            <div id="btn-prev" class="ctrl-item tv-focusable" data-zone="ctrl" tabindex="0" title="上一首">
+                <span class="ctrl-icon">⏮</span>
+                <span class="ctrl-label">上一首</span>
+            </div>
+            <div id="btn-play" class="ctrl-item ctrl-play tv-focusable" data-zone="ctrl" tabindex="0" title="播放">
+                <span class="ctrl-icon">▶️</span>
+            </div>
+            <div id="btn-next" class="ctrl-item tv-focusable" data-zone="ctrl" tabindex="0" title="下一首">
+                <span class="ctrl-icon">⏭</span>
+                <span class="ctrl-label">下一首</span>
+            </div>
+
+            <div class="ctrl-divider"></div>
+
+            <div id="btn-mode" class="ctrl-item tv-focusable" data-zone="ctrl" tabindex="0" title="列表循环">
+                <span class="ctrl-icon">🔁</span>
+                <span class="ctrl-label">循环</span>
+            </div>
+            <div id="btn-view" class="ctrl-item tv-focusable" data-zone="ctrl" tabindex="0" title="切换视图">
+                <span class="ctrl-icon">📋</span>
+                <span class="ctrl-label">列表</span>
+            </div>
+        </div>
+
+        <!-- ===== 右栏：播放区 (~61%) ===== -->
         <div id="right-panel">
             <div id="bg-blur"></div>
             <div id="player-content">
@@ -49,17 +80,10 @@
                 <!-- 进度条 -->
                 <div id="progress-bar-wrapper">
                     <span id="progress-time-current">00:00</span>
-                    <div id="progress-track" class="tv-focusable" data-zone="right" data-nav-id="progress" tabindex="0">
+                    <div id="progress-track" class="tv-focusable" data-zone="player" tabindex="0">
                         <div id="progress-fill"></div>
                     </div>
                     <span id="progress-time-total">00:00</span>
-                </div>
-                <!-- 播放控制 -->
-                <div id="controls">
-                    <div id="btn-mode" class="ctrl-btn tv-focusable" data-zone="right" data-nav-id="mode" tabindex="0" title="列表循环">🔁</div>
-                    <div id="btn-prev" class="ctrl-btn tv-focusable" data-zone="right" data-nav-id="prev" tabindex="0">⏮</div>
-                    <div id="btn-play" class="ctrl-btn play-btn tv-focusable" data-zone="right" data-nav-id="play" tabindex="0">▶️</div>
-                    <div id="btn-next" class="ctrl-btn tv-focusable" data-zone="right" data-nav-id="next" tabindex="0">⏭</div>
                 </div>
                 <!-- 歌词 -->
                 <div id="lyrics-container">
@@ -74,9 +98,9 @@
 
     <!-- 导航提示 -->
     <div id="nav-hint">
-        <span class="hint-key"><kbd>↑↓←→</kbd> 导航</span>
-        <span class="hint-key"><kbd>OK</kbd> 确认</span>
-        <span class="hint-key"><kbd>空格</kbd> 播放/暂停</span>
+        <span class="hint-key">↑↓←→ 导航</span>
+        <span class="hint-key">OK 确认</span>
+        <span class="hint-key">空格 播放/暂停</span>
     </div>
 
     <!-- Audio -->
