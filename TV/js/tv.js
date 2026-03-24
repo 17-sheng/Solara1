@@ -1,12 +1,9 @@
 /**
  * Solara TV — 电视遥控器优化版音乐播放器
  * 
- * 设计理念：
- * 1. 两个区域(zone)：left(列表) 和 right(播放器)，用 ← → 切换
- * 2. 每个 zone 内部用 ↑ ↓ 在可聚焦元素间导航
- * 3. Enter/OK 触发当前聚焦元素的动作
- * 4. 空格键 始终控制 播放/暂停
- * 5. 导航基于 data-zone 和 DOM 顺序，简单可靠
+ * 三列布局：左列表(33%) | 中间控制按钮竖排(72px) | 右播放区(~61%)
+ * 三个 zone: left(歌曲列表), ctrl(中间按钮), player(进度条)
+ * ← → 在 zone 间切换，↑ ↓ 在 zone 内导航
  */
 document.addEventListener('DOMContentLoaded', () => {
 
@@ -17,15 +14,15 @@ document.addEventListener('DOMContentLoaded', () => {
         { id: 'netease', name: '网易云' },
         { id: 'tencent', name: 'QQ音乐' },
         { id: 'kuwo',    name: '酷我' },
-        { id: 'joox',   name: 'JOOX' },
-        { id: 'apple',   name: 'apple' }
+        { id: 'joox',    name: 'JOOX' },
+        { id: 'apple',   name: 'Apple' }
     ];
 
     const PLAY_MODES = [
-        { id: 'loop',     icon: '🔁', desc: '列表循环' },
-        { id: 'single',   icon: '🔂', desc: '单曲循环' },
-        { id: 'random',   icon: '🔀', desc: '随机播放' },
-        { id: 'sequence', icon: '⬇️', desc: '顺序播放' }
+        { id: 'loop',     icon: '🔁', desc: '列表循环', short: '循环' },
+        { id: 'single',   icon: '🔂', desc: '单曲循环', short: '单曲' },
+        { id: 'random',   icon: '🔀', desc: '随机播放', short: '随机' },
+        { id: 'sequence', icon: '⏬', desc: '顺序播放', short: '顺序' }
     ];
 
     // ===================== 状态 =====================
@@ -35,19 +32,18 @@ document.addEventListener('DOMContentLoaded', () => {
     let searchResults      = [];
     let playlist           = JSON.parse(localStorage.getItem('tv_playlist') || '[]');
     let currentPlayIndex   = -1;
-    let currentZone        = 'left';     // 'left' | 'right'
-    let parsedLyrics       = [];         // [{time, text}]
+    let currentZone        = 'left';     // 'left' | 'ctrl' | 'player'
+    let parsedLyrics       = [];
     let isSearching        = false;
+
+    // 记住每个 zone 最后的焦点索引
+    let lastIndex = { left: 0, ctrl: 2, player: 0 };
 
     // ===================== DOM =====================
     const searchInput      = document.getElementById('search-input');
     const btnSearch        = document.getElementById('btn-search');
     const btnSource        = document.getElementById('btn-source');
     const btnView          = document.getElementById('btn-view');
-    const songListEl       = document.getElementById('song-list');
-    const songListWrapper  = document.getElementById('song-list-wrapper');
-    const loadingEl        = document.getElementById('loading');
-    const audio            = document.getElementById('audio-player');
     const btnPlay          = document.getElementById('btn-play');
     const btnPrev          = document.getElementById('btn-prev');
     const btnNext          = document.getElementById('btn-next');
@@ -61,8 +57,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const albumCover       = document.getElementById('album-cover');
     const bgBlur           = document.getElementById('bg-blur');
     const toastEl          = document.getElementById('toast');
-    const leftPanel        = document.getElementById('left-panel');
-    const rightPanel       = document.getElementById('right-panel');
+    const songListEl       = document.getElementById('song-list');
+    const songListWrapper  = document.getElementById('song-list-wrapper');
+    const loadingEl        = document.getElementById('loading');
+    const audio            = document.getElementById('audio-player');
 
     // ===================== Toast =====================
     let toastTimer;
@@ -82,100 +80,68 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function savePlaylist() {
-        try {
-            localStorage.setItem('tv_playlist', JSON.stringify(playlist));
-        } catch(e) { /* ignore */ }
+        try { localStorage.setItem('tv_playlist', JSON.stringify(playlist)); } catch(e) {}
+    }
+
+    function escapeHtml(str) {
+        const div = document.createElement('div');
+        div.appendChild(document.createTextNode(str));
+        return div.innerHTML;
     }
 
     // ===================== 导航系统 =====================
-    
-    /**
-     * 获取某个 zone 内所有可聚焦元素，按 DOM 顺序
-     */
     function getZoneItems(zone) {
         return Array.from(document.querySelectorAll(`.tv-focusable[data-zone="${zone}"]`));
     }
 
-    /**
-     * 获取当前焦点在其 zone 中的索引
-     */
-    function getCurrentIndex(zone) {
-        const items = getZoneItems(zone);
-        return items.indexOf(document.activeElement);
-    }
-
-    /**
-     * 聚焦到指定 zone 的第 n 个元素
-     */
     function focusZoneItem(zone, index) {
         const items = getZoneItems(zone);
         if (items.length === 0) return;
         const idx = Math.max(0, Math.min(index, items.length - 1));
         items[idx].focus({ preventScroll: false });
-        // 确保滚动到可见位置
         if (zone === 'left' && items[idx].classList.contains('song-item')) {
             items[idx].scrollIntoView({ block: 'nearest', behavior: 'smooth' });
         }
     }
 
-    /**
-     * 切换区域高亮
-     */
-    function updateZoneHighlight() {
-        leftPanel.classList.toggle('zone-active', currentZone === 'left');
-        rightPanel.classList.toggle('zone-active', currentZone === 'right');
-    }
-
-    // 记住每个 zone 最后的焦点索引
-    let lastIndex = { left: 0, right: 2 }; // right 默认第3个(播放按钮)
-
-    /**
-     * 核心键盘事件处理
-     */
+    // ===================== 核心键盘事件 =====================
     document.addEventListener('keydown', (e) => {
         const key = e.keyCode;
         const ae  = document.activeElement;
         const isInput = (ae === searchInput);
 
-        // ---- 空格：始终 播放/暂停 (除非在输入框) ----
+        // 空格：播放/暂停（非输入框）
         if (key === 32 && !isInput) {
             e.preventDefault();
             togglePlay();
             return;
         }
 
-        // ---- 输入框中的特殊处理 ----
+        // 输入框特殊处理
         if (isInput) {
-            if (key === 13) { // Enter -> 搜索
+            if (key === 13) { // Enter
                 e.preventDefault();
                 const kw = searchInput.value.trim();
-                if (kw) {
-                    searchInput.blur();
-                    doSearch(kw);
-                }
+                if (kw) { searchInput.blur(); doSearch(kw); }
                 return;
             }
-            if (key === 40) { // 下 -> 离开输入框到按钮/列表
+            if (key === 40) { // ↓ 离开输入框到列表
                 e.preventDefault();
-                lastIndex.left = 0;
-                // 聚焦到搜索按钮
                 const items = getZoneItems('left');
-                if (items.length > 1) items[1].focus();
+                if (items.length > 0) { items[0].focus(); currentZone = 'left'; lastIndex.left = 0; }
                 return;
             }
-            if (key === 39) { // 右 -> 切到右栏
+            if (key === 39) { // → 到中间控制栏
                 e.preventDefault();
-                currentZone = 'right';
-                updateZoneHighlight();
-                focusZoneItem('right', lastIndex.right);
+                currentZone = 'ctrl';
+                focusZoneItem('ctrl', lastIndex.ctrl);
                 return;
             }
-            // 其他按键让输入框正常处理
             return;
         }
 
-        // ---- 非输入框状态下屏蔽默认行为 ----
-        if ([37, 38, 39, 40, 13, 32].includes(key)) {
+        // 非输入框屏蔽默认行为
+        if ([37, 38, 39, 40, 13].includes(key)) {
             e.preventDefault();
         }
 
@@ -184,11 +150,10 @@ document.addEventListener('DOMContentLoaded', () => {
         if (ci === -1) ci = 0;
 
         switch (key) {
-            case 38: // ↑ 上
+            case 38: // ↑
                 if (ci > 0) {
-                    // 跳过 delete-btn（在 left zone 中与 song-item 交替出现时）
                     let target = ci - 1;
-                    // 如果当前是 song-item，上一个可能是 delete-btn，再跳一个
+                    // 跳过 delete-btn
                     if (currentZone === 'left' && zoneItems[target] && zoneItems[target].classList.contains('delete-btn')) {
                         target--;
                     }
@@ -199,10 +164,13 @@ document.addEventListener('DOMContentLoaded', () => {
                             zoneItems[target].scrollIntoView({ block: 'nearest', behavior: 'smooth' });
                         }
                     }
+                } else if (currentZone === 'left') {
+                    // 到顶 → 聚焦搜索框
+                    searchInput.focus();
                 }
                 break;
 
-            case 40: // ↓ 下
+            case 40: // ↓
                 if (ci < zoneItems.length - 1) {
                     let target = ci + 1;
                     if (currentZone === 'left' && zoneItems[target] && zoneItems[target].classList.contains('delete-btn')) {
@@ -219,14 +187,18 @@ document.addEventListener('DOMContentLoaded', () => {
                 break;
 
             case 37: // ← 左
-                if (currentZone === 'right') {
-                    // 切到左栏
-                    lastIndex.right = ci;
+                if (currentZone === 'ctrl') {
+                    // ctrl → left
+                    lastIndex.ctrl = ci;
                     currentZone = 'left';
-                    updateZoneHighlight();
                     focusZoneItem('left', lastIndex.left);
+                } else if (currentZone === 'player') {
+                    // player → ctrl
+                    lastIndex.player = ci;
+                    currentZone = 'ctrl';
+                    focusZoneItem('ctrl', lastIndex.ctrl);
                 } else if (currentZone === 'left') {
-                    // 如果当前在 delete-btn，跳回对应的 song-item
+                    // 如果在 delete-btn，跳回 song-item
                     if (ae && ae.classList.contains('delete-btn')) {
                         const prev = ci - 1;
                         if (prev >= 0) {
@@ -239,35 +211,53 @@ document.addEventListener('DOMContentLoaded', () => {
 
             case 39: // → 右
                 if (currentZone === 'left') {
-                    // 如果当前是 song-item 且旁边有 delete-btn
-                    if (ae && ae.classList.contains('song-item') && 
+                    // 如果在 song-item 且旁边有 delete-btn
+                    if (ae && ae.classList.contains('song-item') &&
                         zoneItems[ci + 1] && zoneItems[ci + 1].classList.contains('delete-btn')) {
                         zoneItems[ci + 1].focus();
                         lastIndex.left = ci + 1;
                     } else {
-                        // 切到右栏
+                        // left → ctrl
                         lastIndex.left = ci;
-                        currentZone = 'right';
-                        updateZoneHighlight();
-                        focusZoneItem('right', lastIndex.right);
+                        currentZone = 'ctrl';
+                        focusZoneItem('ctrl', lastIndex.ctrl);
                     }
-                } else if (currentZone === 'right') {
-                    // 在进度条上，右键快进5秒
+                } else if (currentZone === 'ctrl') {
+                    // ctrl → player
+                    lastIndex.ctrl = ci;
+                    currentZone = 'player';
+                    focusZoneItem('player', lastIndex.player);
+                } else if (currentZone === 'player') {
+                    // 在进度条快进5秒
                     if (ae && ae.id === 'progress-track' && audio.src && !isNaN(audio.duration)) {
                         audio.currentTime = Math.min(audio.duration, audio.currentTime + 5);
                     }
                 }
                 break;
 
-            case 13: // Enter / OK
+            case 13: // Enter/OK
                 if (ae) ae.click();
                 break;
         }
     });
 
+    // 进度条特殊快进/快退（聚焦时）
+    progressTrack.addEventListener('keydown', (e) => {
+        if (!audio.src || isNaN(audio.duration)) return;
+        if (e.keyCode === 37) {
+            e.stopPropagation();
+            e.preventDefault();
+            audio.currentTime = Math.max(0, audio.currentTime - 5);
+        } else if (e.keyCode === 39) {
+            e.stopPropagation();
+            e.preventDefault();
+            audio.currentTime = Math.min(audio.duration, audio.currentTime + 5);
+        }
+    });
+
     // ===================== 按钮事件 =====================
 
-    // 搜索按钮
+    // 搜索
     btnSearch.addEventListener('click', () => {
         const kw = searchInput.value.trim();
         if (kw) {
@@ -276,21 +266,28 @@ document.addEventListener('DOMContentLoaded', () => {
             showToast('请先输入搜索关键词');
             searchInput.focus();
             currentZone = 'left';
-            updateZoneHighlight();
         }
     });
 
     // 切换音源
     btnSource.addEventListener('click', () => {
         currentSourceIndex = (currentSourceIndex + 1) % SOURCES.length;
-        btnSource.innerText = '源: ' + SOURCES[currentSourceIndex].name;
-        showToast('已切换: ' + SOURCES[currentSourceIndex].name, true);
+        const s = SOURCES[currentSourceIndex];
+        btnSource.querySelector('.ctrl-label').innerText = s.name;
+        showToast('已切换: ' + s.name, true);
     });
 
     // 切换视图
     btnView.addEventListener('click', () => {
         currentView = currentView === 'search' ? 'playlist' : 'search';
         updateView();
+        if (currentView === 'search') {
+            btnView.querySelector('.ctrl-icon').innerText = '📋';
+            btnView.querySelector('.ctrl-label').innerText = '列表';
+        } else {
+            btnView.querySelector('.ctrl-icon').innerText = '🔍';
+            btnView.querySelector('.ctrl-label').innerText = '搜索';
+        }
         showToast(currentView === 'search' ? '搜索结果' : '播放列表 (' + playlist.length + ')', true);
     });
 
@@ -298,8 +295,8 @@ document.addEventListener('DOMContentLoaded', () => {
     btnPlay.addEventListener('click', togglePlay);
     function togglePlay() {
         if (audio.src) {
-            if (audio.paused) { audio.play(); btnPlay.innerText = '⏸️'; }
-            else              { audio.pause(); btnPlay.innerText = '▶️'; }
+            if (audio.paused) { audio.play(); btnPlay.querySelector('.ctrl-icon').innerText = '⏸'; }
+            else              { audio.pause(); btnPlay.querySelector('.ctrl-icon').innerText = '▶️'; }
         } else if (playlist.length > 0) {
             playSong(0);
         } else {
@@ -307,7 +304,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // 上一首 / 下一首
+    // 上一首/下一首
     btnPrev.addEventListener('click', playPrev);
     btnNext.addEventListener('click', playNext);
 
@@ -315,7 +312,8 @@ document.addEventListener('DOMContentLoaded', () => {
     btnMode.addEventListener('click', () => {
         currentModeIndex = (currentModeIndex + 1) % PLAY_MODES.length;
         const mode = PLAY_MODES[currentModeIndex];
-        btnMode.innerText = mode.icon;
+        btnMode.querySelector('.ctrl-icon').innerText = mode.icon;
+        btnMode.querySelector('.ctrl-label').innerText = mode.short;
         btnMode.title = mode.desc;
         showToast('模式: ' + mode.desc, true);
     });
@@ -326,20 +324,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const rect = progressTrack.getBoundingClientRect();
         const ratio = (e.clientX - rect.left) / rect.width;
         audio.currentTime = ratio * audio.duration;
-    });
-
-    // 进度条左右快进/快退 (当进度条被聚焦时)
-    progressTrack.addEventListener('keydown', (e) => {
-        if (!audio.src || isNaN(audio.duration)) return;
-        if (e.keyCode === 37) { // 左 = 后退5秒
-            e.stopPropagation();
-            e.preventDefault();
-            audio.currentTime = Math.max(0, audio.currentTime - 5);
-        } else if (e.keyCode === 39) { // 右 = 快进5秒
-            e.stopPropagation();
-            e.preventDefault();
-            audio.currentTime = Math.min(audio.duration, audio.currentTime + 5);
-        }
     });
 
     // ===================== 音频事件 =====================
@@ -355,7 +339,7 @@ document.addEventListener('DOMContentLoaded', () => {
     audio.addEventListener('ended', playNext);
 
     audio.addEventListener('error', () => {
-        showToast('播放出错，自动跳下一首');
+        showToast('播放出错，跳下一首');
         setTimeout(playNext, 1000);
     });
 
@@ -366,6 +350,9 @@ document.addEventListener('DOMContentLoaded', () => {
         loadingEl.style.display = 'block';
         songListEl.innerHTML = '';
         currentView = 'search';
+        // 同步视图按钮
+        btnView.querySelector('.ctrl-icon').innerText = '📋';
+        btnView.querySelector('.ctrl-label').innerText = '列表';
         const source = SOURCES[currentSourceIndex].id;
 
         try {
@@ -373,18 +360,18 @@ document.addEventListener('DOMContentLoaded', () => {
             const res = await fetch(url);
             const data = await res.json();
             const songs = Array.isArray(data) ? data : (data.data || data.result || []);
-            
+
             if (songs && songs.length > 0) {
                 searchResults = songs.map(s => ({ ...s, target_source: source }));
                 updateView();
                 showToast('找到 ' + searchResults.length + ' 首歌曲', true);
-                // 搜索完成后聚焦到第一首歌
+                // 聚焦第一首歌
                 setTimeout(() => {
                     const firstSong = songListEl.querySelector('.song-item');
                     if (firstSong) {
                         firstSong.focus();
                         currentZone = 'left';
-                        updateZoneHighlight();
+                        lastIndex.left = 0;
                     }
                 }, 100);
             } else {
@@ -403,9 +390,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // ===================== 渲染列表 =====================
     function updateView() {
-        btnView.innerText = currentView === 'search' 
-            ? '搜索结果' 
-            : '列表(' + playlist.length + ')';
         renderList(currentView === 'search' ? searchResults : playlist);
     }
 
@@ -424,14 +408,11 @@ document.addEventListener('DOMContentLoaded', () => {
             const row = document.createElement('div');
             row.className = 'list-row';
 
-            // 歌曲项
             const item = document.createElement('div');
             item.className = 'song-item tv-focusable';
             item.tabIndex = 0;
             item.dataset.zone = 'left';
-            item.dataset.navId = 'song-' + index;
 
-            // 当前播放标记
             if (currentView === 'playlist' && index === currentPlayIndex) {
                 item.classList.add('playing');
             }
@@ -439,7 +420,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const artist = Array.isArray(song.artist) ? song.artist.join(' / ') : (song.artist || '未知歌手');
             const album = song.album || '';
 
-            item.innerHTML = 
+            item.innerHTML =
                 '<span class="song-index">' + (index + 1) + '</span>' +
                 '<div class="song-info">' +
                     '<div class="song-name">' + escapeHtml(song.name || '未知歌曲') + '</div>' +
@@ -448,14 +429,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
             item.addEventListener('click', () => {
                 if (currentView === 'search') {
-                    // 搜索视图：添加到播放列表并立即播放
                     playlist.push(song);
                     savePlaylist();
                     currentPlayIndex = playlist.length - 1;
                     playSong(currentPlayIndex);
                     showToast('已添加并播放', true);
                 } else {
-                    // 播放列表视图：直接播放
                     playSong(index);
                 }
             });
@@ -468,7 +447,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 del.className = 'delete-btn tv-focusable';
                 del.tabIndex = 0;
                 del.dataset.zone = 'left';
-                del.dataset.navId = 'del-' + index;
                 del.innerHTML = '✕';
                 del.title = '从列表移除';
                 del.addEventListener('click', (ev) => {
@@ -476,11 +454,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     playlist.splice(index, 1);
                     savePlaylist();
                     showToast('已移除', true);
-                    // 调整当前播放索引
                     if (currentPlayIndex === index) {
                         audio.pause();
                         audio.src = '';
-                        btnPlay.innerText = '▶️';
+                        btnPlay.querySelector('.ctrl-icon').innerText = '▶️';
                         if (playlist.length > 0) {
                             currentPlayIndex = Math.min(index, playlist.length - 1);
                             playSong(currentPlayIndex);
@@ -500,12 +477,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    function escapeHtml(str) {
-        const div = document.createElement('div');
-        div.appendChild(document.createTextNode(str));
-        return div.innerHTML;
-    }
-
     function resetPlayerUI() {
         document.getElementById('song-title').innerText = 'Solara TV';
         document.getElementById('song-artist').innerText = '准备播放';
@@ -523,7 +494,6 @@ document.addEventListener('DOMContentLoaded', () => {
         currentPlayIndex = index;
         const song = playlist[index];
 
-        // 更新 UI
         const artist = Array.isArray(song.artist) ? song.artist.join(' / ') : (song.artist || '未知歌手');
         document.getElementById('song-title').innerText = song.name || '未知歌曲';
         document.getElementById('song-artist').innerText = artist;
@@ -535,21 +505,20 @@ document.addEventListener('DOMContentLoaded', () => {
         const source = song.target_source || song.source || 'netease';
 
         try {
-            // 获取播放 URL
             const urlRes = await fetch(`${API_BASE}?types=url&source=${source}&id=${song.id}`);
             const urlData = await urlRes.json();
 
             if (urlData && urlData.url) {
                 audio.src = urlData.url.replace(/^http:\/\//i, 'https://');
                 audio.play();
-                btnPlay.innerText = '⏸️';
+                btnPlay.querySelector('.ctrl-icon').innerText = '⏸';
             } else {
                 showToast(song.name + ' 无法播放，跳过');
                 setTimeout(playNext, 500);
                 return;
             }
 
-            // 获取封面（异步，不阻塞播放）
+            // 封面（异步）
             if (song.pic_id) {
                 fetch(`${API_BASE}?types=pic&source=${source}&id=${song.pic_id}&size=500`)
                     .then(r => r.json())
@@ -562,7 +531,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     }).catch(() => {});
             }
 
-            // 获取歌词（异步）
+            // 歌词（异步）
             if (song.lyric_id) {
                 fetch(`${API_BASE}?types=lyric&source=${source}&id=${song.lyric_id}`)
                     .then(r => r.json())
@@ -584,15 +553,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 lyricsTextEl.innerText = '暂无歌词';
             }
 
-            // MediaSession (某些电视系统支持)
+            // MediaSession
             if ('mediaSession' in navigator) {
                 navigator.mediaSession.metadata = new MediaMetadata({
                     title: song.name || '未知歌曲',
                     artist: artist,
                     album: song.album || ''
                 });
-                navigator.mediaSession.setActionHandler('play', () => { audio.play(); btnPlay.innerText = '⏸️'; });
-                navigator.mediaSession.setActionHandler('pause', () => { audio.pause(); btnPlay.innerText = '▶️'; });
+                navigator.mediaSession.setActionHandler('play', () => { audio.play(); btnPlay.querySelector('.ctrl-icon').innerText = '⏸'; });
+                navigator.mediaSession.setActionHandler('pause', () => { audio.pause(); btnPlay.querySelector('.ctrl-icon').innerText = '▶️'; });
                 navigator.mediaSession.setActionHandler('previoustrack', playPrev);
                 navigator.mediaSession.setActionHandler('nexttrack', playNext);
             }
@@ -624,9 +593,9 @@ document.addEventListener('DOMContentLoaded', () => {
             next = currentPlayIndex + 1;
             if (next >= playlist.length) {
                 if (mode === 'loop') next = 0;
-                else { // sequence
+                else {
                     audio.pause();
-                    btnPlay.innerText = '▶️';
+                    btnPlay.querySelector('.ctrl-icon').innerText = '▶️';
                     showToast('播放列表已结束');
                     return;
                 }
@@ -638,7 +607,6 @@ document.addEventListener('DOMContentLoaded', () => {
     function playPrev() {
         if (playlist.length === 0) return;
         const mode = PLAY_MODES[currentModeIndex].id;
-
         let prev;
         if (mode === 'random') {
             prev = Math.floor(Math.random() * playlist.length);
@@ -654,7 +622,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const lines = lrc.split('\n');
         const result = [];
         const regex = /\[(\d{2}):(\d{2})(?:\.(\d{1,3}))?\]/;
-
         for (const line of lines) {
             const match = line.match(regex);
             if (match) {
@@ -663,9 +630,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const ms  = match[3] ? parseInt(match[3].padEnd(3, '0'), 10) : 0;
                 const time = min * 60 + sec + ms / 1000;
                 const text = line.replace(/\[.*?\]/g, '').trim();
-                if (text) {
-                    result.push({ time, text });
-                }
+                if (text) result.push({ time, text });
             }
         }
         return result.sort((a, b) => a.time - b.time);
@@ -685,24 +650,15 @@ document.addEventListener('DOMContentLoaded', () => {
     let lastHighlightIndex = -1;
     function updateLyricsHighlight(currentTime) {
         if (parsedLyrics.length === 0) return;
-
         let activeIdx = -1;
         for (let i = parsedLyrics.length - 1; i >= 0; i--) {
-            if (currentTime >= parsedLyrics[i].time) {
-                activeIdx = i;
-                break;
-            }
+            if (currentTime >= parsedLyrics[i].time) { activeIdx = i; break; }
         }
-
         if (activeIdx === lastHighlightIndex) return;
         lastHighlightIndex = activeIdx;
 
         const lines = lyricsTextEl.querySelectorAll('.lyric-line');
-        lines.forEach((el, i) => {
-            el.classList.toggle('active', i === activeIdx);
-        });
-
-        // 滚动歌词到可见位置
+        lines.forEach((el, i) => { el.classList.toggle('active', i === activeIdx); });
         if (activeIdx >= 0 && lines[activeIdx]) {
             lines[activeIdx].scrollIntoView({ block: 'center', behavior: 'smooth' });
         }
@@ -710,14 +666,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // ===================== 初始化 =====================
     updateView();
-    updateZoneHighlight();
 
-    // 页面加载后聚焦到搜索框
-    setTimeout(() => {
-        searchInput.focus();
-    }, 300);
+    setTimeout(() => { searchInput.focus(); }, 300);
 
-    // 如果有保存的播放列表，显示提示
     if (playlist.length > 0) {
         showToast('已恢复 ' + playlist.length + ' 首歌曲', true);
     }
