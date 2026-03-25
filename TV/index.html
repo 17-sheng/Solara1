@@ -8,11 +8,7 @@
 </head>
 <body>
     <div id="tv-app">
-
-        <!-- ===== 主体三栏 ===== -->
         <div id="main-area">
-
-            <!-- ===== 左段：歌词 (~35%) ===== -->
             <div id="panel-lyrics">
                 <div id="lyrics-header">
                     <span class="lyrics-icon">🎵</span>
@@ -25,7 +21,6 @@
                 </div>
             </div>
 
-            <!-- ===== 中段：封面 + 控制 (~30%) ===== -->
             <div id="panel-center">
                 <div id="bg-blur"></div>
                 <div id="center-inner">
@@ -39,25 +34,24 @@
                         </div>
                     </div>
                     <div id="controls-area">
-                        <!-- 第一排：功能类 -->
                         <div class="ctrl-row">
                             <div id="btn-go-list" class="ctrl-btn tv-focusable" data-zone="ctrl" tabindex="0" title="进入列表">
                                 <span class="c-icon">📥</span>
                             </div>
                             <div id="btn-source" class="ctrl-btn tv-focusable" data-zone="ctrl" tabindex="0" title="切换音源">
                                 <span class="c-icon">📡</span>
+                                <span class="c-text">网易云</span>
                             </div>
                             <div id="btn-mode" class="ctrl-btn tv-focusable" data-zone="ctrl" tabindex="0" title="播放模式">
                                 <span class="c-icon">🔁</span>
                             </div>
                             <div id="btn-view" class="ctrl-btn tv-focusable" data-zone="ctrl" tabindex="0" title="切换视图">
-                                <span class="c-icon">🔍</span>
+                                <span class="c-icon">📋</span>
                             </div>
                             <div id="btn-search" class="ctrl-btn tv-focusable" data-zone="ctrl" tabindex="0" title="搜索">
                                 <span class="c-icon">🔎</span>
                             </div>
                         </div>
-                        <!-- 第二排：播放控制类 -->
                         <div class="ctrl-row">
                             <div id="btn-rewind" class="ctrl-btn tv-focusable" data-zone="ctrl" tabindex="0" title="快退10秒">
                                 <span class="c-icon">⏪</span>
@@ -79,7 +73,6 @@
                 </div>
             </div>
 
-            <!-- ===== 右段：搜索 + 列表 (~35%) ===== -->
             <div id="panel-list">
                 <div id="search-bar">
                     <input id="search-input" type="text" placeholder="输入歌名/歌手..."
@@ -100,7 +93,6 @@
                     </div>
                 </div>
             </div>
-
         </div>
 
         <div id="bottom-bar">
@@ -110,7 +102,6 @@
             </div>
             <span id="progress-time-total">00:00</span>
         </div>
-
     </div>
 
     <div id="toast" class="toast">提示</div>
