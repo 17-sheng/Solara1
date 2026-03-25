@@ -1,536 +1,393 @@
-/* ================= CSS 变量 ================= */
+/* ============================================================
+   Solara TV — 电视遥控器优化版
+   布局：左歌词(35%) | 中封面+控制(30%) | 右列表(35%)
+   底部：进度条横穿全屏
+   控制区：两排 × 五按钮，等宽等高
+   ============================================================ */
+
+/* ===== CSS 变量 ===== */
 :root {
-    --bg-primary: #07070d;
-    --bg-secondary: #0d0d18;
-    --bg-card: #1a1a2e;
-    --bg-hover: #252540;
-    --text-primary: #e8e8f0;
-    --text-secondary: #8888a0;
-    --text-dim: #555570;
+    --bg-deep: #05050c;
+    --bg-panel: #0a0a16;
+    --bg-card: #151528;
+    --bg-hover: #1e1e38;
+    --text-1: #eaeaf4;
+    --text-2: #9090aa;
+    --text-3: #555570;
     --accent: #6c5ce7;
-    --accent-light: #a29bfe;
-    --focus-color: #6c5ce7;
-    --focus-bg: rgba(108, 92, 231, 0.15);
-    --focus-glow: rgba(108, 92, 231, 0.4);
+    --accent-lt: #a29bfe;
+    --focus-glow: rgba(108, 92, 231, 0.45);
     --success: #00cec9;
     --danger: #e74c3c;
-    --border: rgba(255, 255, 255, 0.06);
+    --border: rgba(255,255,255,0.06);
     --radius: 10px;
+    --bottom-h: 42px;
+    --ctrl-gap: 8px;
 }
 
-/* ================= 全局重置 ================= */
-* {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
+/* ===== 重置 ===== */
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{
+    width:100%;height:100%;overflow:hidden;
+    font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;
+    background:var(--bg-deep);color:var(--text-1);
+    font-size:18px;-webkit-font-smoothing:antialiased;user-select:none;
 }
 
-html, body {
-    width: 100%;
-    height: 100%;
-    overflow: hidden;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
-    background: var(--bg-primary);
-    color: var(--text-primary);
-    font-size: 18px;
-    -webkit-font-smoothing: antialiased;
-    user-select: none;
+/* ===== 整体容器 ===== */
+#tv-app{
+    width:100%;height:100%;display:flex;flex-direction:column;
 }
 
-/* ================= 主容器：三列布局 ================= */
-#tv-container {
-    display: flex;
-    width: 100%;
-    height: 100%;
+/* ===== 主体三栏 ===== */
+#main-area{
+    flex:1;display:flex;overflow:hidden;
+    height:calc(100% - var(--bottom-h));
 }
 
-/* ================= 左栏：搜索 + 列表 (33%) ================= */
-#left-panel {
-    width: 33%;
-    min-width: 33%;
-    height: 100%;
-    display: flex;
-    flex-direction: column;
-    background: var(--bg-secondary);
-    border-right: 1px solid var(--border);
-    position: relative;
-    z-index: 2;
+/* ==================== 左段：歌词 ==================== */
+#panel-lyrics{
+    width:35%;min-width:280px;height:100%;
+    display:flex;flex-direction:column;
+    background:var(--bg-panel);
+    border-right:1px solid var(--border);
+}
+#lyrics-header{
+    padding:16px 20px 12px;
+    font-size:15px;color:var(--text-3);
+    display:flex;align-items:center;gap:8px;
+    border-bottom:1px solid var(--border);
+    flex-shrink:0;
+}
+.lyrics-icon{font-size:20px;}
+#lyrics-scroll{
+    flex:1;overflow-y:auto;overflow-x:hidden;
+    padding:20px 28px;
+    scroll-behavior:smooth;
+}
+#lyrics-scroll::-webkit-scrollbar{width:4px;}
+#lyrics-scroll::-webkit-scrollbar-thumb{background:#333;border-radius:2px;}
+
+#lyrics-content{line-height:1;}
+
+.lyrics-placeholder{
+    text-align:center;color:var(--text-3);
+    font-size:22px;padding:60px 0;
 }
 
-/* 搜索栏 */
-#search-bar {
-    display: flex;
-    align-items: center;
-    padding: 14px 16px;
-    background: #0a0a12;
-    border-bottom: 1px solid var(--border);
-    flex-shrink: 0;
+.lyric-line{
+    padding:10px 4px;
+    font-size:20px;
+    color:#555;
+    transition:all 0.35s ease;
+    text-align:center;
+    line-height:1.5;
+}
+.lyric-line.active{
+    color:var(--accent-lt);
+    font-size:26px;
+    font-weight:600;
+    text-shadow:0 0 18px rgba(162,155,254,0.3);
 }
 
-#search-input {
-    flex: 1;
-    height: 46px;
-    padding: 0 16px;
-    font-size: 18px;
-    background: var(--bg-card);
-    color: var(--text-primary);
-    border: 2px solid transparent;
-    border-radius: var(--radius);
-    outline: none;
-    transition: all 0.2s ease;
+/* ==================== 中段：封面 + 控制 ==================== */
+#panel-center{
+    width:30%;min-width:260px;height:100%;
+    position:relative;overflow:hidden;
+    display:flex;align-items:center;justify-content:center;
+}
+#bg-blur{
+    position:absolute;inset:-50px;
+    background-size:cover;background-position:center;
+    filter:blur(70px) brightness(0.2) saturate(1.4);
+    z-index:0;transition:background-image 0.8s ease;
+}
+#center-inner{
+    position:relative;z-index:1;
+    width:100%;height:100%;
+    display:flex;flex-direction:column;
+    align-items:center;
+    padding:20px 16px 12px;
 }
 
-#search-input::placeholder {
-    color: var(--text-dim);
+/* 封面区 */
+#cover-area{
+    display:flex;flex-direction:column;align-items:center;
+    flex:1;justify-content:center;
+    min-height:0;
+}
+#cover-wrap{
+    width:200px;height:200px;
+    border-radius:16px;overflow:hidden;
+    box-shadow:0 16px 50px rgba(0,0,0,0.5);
+    background:var(--bg-card);
+    flex-shrink:0;
+}
+#album-cover{
+    width:100%;height:100%;object-fit:cover;display:block;
+    transition:opacity 0.4s ease;
+}
+#song-info{
+    text-align:center;margin-top:16px;width:100%;
+    padding:0 8px;
+}
+#song-title{
+    font-size:22px;font-weight:600;color:var(--text-1);
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+    max-width:100%;
+}
+#song-artist{
+    font-size:14px;color:var(--text-2);margin-top:4px;
 }
 
-#search-input:focus {
-    border-color: var(--accent);
-    background: var(--bg-hover);
-    box-shadow: 0 0 0 3px var(--focus-glow);
+/* ===== 控制按钮区：两排五等分 ===== */
+#controls-area{
+    flex-shrink:0;
+    width:100%;
+    display:flex;flex-direction:column;
+    gap:var(--ctrl-gap);
+    padding:12px 0 0;
 }
 
-/* 歌曲列表容器 */
-#song-list-wrapper {
-    flex: 1;
-    overflow-y: auto;
-    overflow-x: hidden;
-    scroll-behavior: smooth;
-    padding: 6px 8px;
+.ctrl-row{
+    display:flex;
+    gap:var(--ctrl-gap);
+    width:100%;
 }
 
-#song-list-wrapper::-webkit-scrollbar {
-    width: 5px;
+.ctrl-btn{
+    flex:1;
+    display:flex;align-items:center;justify-content:center;
+    height:52px;
+    border-radius:12px;
+    background:rgba(255,255,255,0.06);
+    border:2px solid transparent;
+    cursor:pointer;
+    transition:all 0.18s ease;
+    white-space:nowrap;
+    padding:0;
 }
-#song-list-wrapper::-webkit-scrollbar-track {
-    background: transparent;
-}
-#song-list-wrapper::-webkit-scrollbar-thumb {
-    background: #444;
-    border-radius: 3px;
+.ctrl-btn .c-icon{font-size:22px;line-height:1;}
+.ctrl-btn:hover{background:rgba(255,255,255,0.1);}
+
+/* ==================== 右段：搜索+列表 ==================== */
+#panel-list{
+    width:35%;min-width:280px;height:100%;
+    display:flex;flex-direction:column;
+    background:var(--bg-panel);
+    border-left:1px solid var(--border);
 }
 
-#song-list {
-    /* no extra padding, parent handles it */
+#search-bar{
+    display:flex;align-items:center;
+    padding:12px 14px;
+    background:rgba(0,0,0,0.3);
+    border-bottom:1px solid var(--border);
+    flex-shrink:0;
+}
+#search-input{
+    flex:1;height:42px;padding:0 14px;
+    font-size:17px;background:var(--bg-card);color:var(--text-1);
+    border:2px solid transparent;border-radius:var(--radius);outline:none;
+    transition:all 0.2s ease;
+}
+#search-input::placeholder{color:var(--text-3);}
+#search-input:focus{
+    border-color:var(--accent);
+    background:var(--bg-hover);
+    box-shadow:0 0 0 3px var(--focus-glow);
 }
 
-/* 列表行 */
-.list-row {
-    display: flex;
-    align-items: center;
-    margin-bottom: 2px;
+#list-scroll{
+    flex:1;overflow-y:auto;overflow-x:hidden;
+    padding:6px 8px;scroll-behavior:smooth;
+}
+#list-scroll::-webkit-scrollbar{width:5px;}
+#list-scroll::-webkit-scrollbar-thumb{background:#444;border-radius:3px;}
+
+.song-item{
+    display:flex;align-items:center;gap:10px;
+    padding:10px 12px;margin-bottom:2px;
+    border-radius:var(--radius);cursor:pointer;
+    transition:all 0.18s ease;border:2px solid transparent;
+    min-height:54px;
+}
+.song-item .s-idx{
+    font-size:13px;color:var(--text-3);min-width:22px;
+    text-align:center;flex-shrink:0;
+}
+.song-item .s-info{flex:1;min-width:0;overflow:hidden;}
+.song-item .s-name{
+    font-size:16px;font-weight:500;color:var(--text-1);
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.song-item .s-detail{
+    font-size:12px;color:var(--text-2);margin-top:2px;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.song-item:hover{background:var(--bg-hover);}
+.song-item.playing{
+    background:rgba(108,92,231,0.15);
+    border-color:var(--accent);
+}
+.song-item.playing .s-idx{color:var(--accent-lt);}
+.song-item.playing .s-name{color:var(--accent-lt);}
+
+.del-btn{
+    display:flex;align-items:center;justify-content:center;
+    width:34px;height:34px;font-size:14px;
+    border-radius:8px;cursor:pointer;flex-shrink:0;
+    border:2px solid transparent;transition:all 0.2s ease;
+    color:var(--text-3);margin-left:4px;
+}
+.del-btn:hover{background:rgba(231,76,60,0.15);color:var(--danger);}
+
+.list-row{display:flex;align-items:center;}
+
+.empty-tip{
+    text-align:center;color:var(--text-3);
+    font-size:16px;padding:40px 16px;line-height:1.8;
+}
+.empty-tip .e-icon{font-size:38px;display:block;margin-bottom:10px;}
+
+#loading{
+    display:none;text-align:center;padding:30px;
+    color:var(--text-2);font-size:16px;
+}
+.spinner{
+    display:inline-block;width:22px;height:22px;
+    border:3px solid #444;border-top-color:var(--accent);
+    border-radius:50%;animation:spin .8s linear infinite;
+    margin-right:8px;vertical-align:middle;
+}
+@keyframes spin{to{transform:rotate(360deg);}}
+
+#pagination{
+    display:flex;align-items:center;justify-content:center;
+    gap:14px;padding:10px 0;
+    border-top:1px solid var(--border);
+    margin-top:4px;
+}
+.page-btn{
+    padding:8px 16px;
+    border-radius:var(--radius);
+    background:var(--bg-card);
+    border:2px solid transparent;
+    font-size:14px;color:var(--text-2);
+    cursor:pointer;transition:all 0.18s ease;
+}
+.page-btn:hover{background:var(--bg-hover);color:var(--text-1);}
+.page-btn.disabled{opacity:0.3;pointer-events:none;}
+#page-info{
+    font-size:13px;color:var(--text-3);min-width:60px;text-align:center;
 }
 
-/* 歌曲条目 */
-.song-item {
-    flex: 1;
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 12px 14px;
-    border-radius: var(--radius);
-    cursor: pointer;
-    transition: all 0.18s ease;
-    border: 2px solid transparent;
-    min-height: 58px;
-}
-
-.song-item .song-index {
-    font-size: 14px;
-    color: var(--text-dim);
-    min-width: 24px;
-    text-align: center;
-    flex-shrink: 0;
-}
-
-.song-item .song-info {
-    flex: 1;
-    min-width: 0;
-    overflow: hidden;
-}
-
-.song-item .song-name {
-    font-size: 17px;
-    font-weight: 500;
-    color: var(--text-primary);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-.song-item .song-detail {
-    font-size: 13px;
-    color: var(--text-secondary);
-    margin-top: 2px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-.song-item:hover {
-    background: var(--bg-hover);
-}
-
-.song-item.playing {
-    background: var(--focus-bg);
-    border-color: var(--accent);
-}
-.song-item.playing .song-index { color: var(--accent-light); }
-.song-item.playing .song-name { color: var(--accent-light); }
-
-/* 删除按钮 */
-.delete-btn {
-    width: 38px;
-    height: 38px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 16px;
-    border-radius: 8px;
-    cursor: pointer;
-    margin-right: 4px;
-    flex-shrink: 0;
-    border: 2px solid transparent;
-    transition: all 0.2s ease;
-    color: var(--text-dim);
-}
-.delete-btn:hover {
-    background: rgba(231, 76, 60, 0.15);
-    color: var(--danger);
-}
-
-/* 空提示 */
-.empty-tip {
-    text-align: center;
-    color: var(--text-dim);
-    font-size: 17px;
-    padding: 50px 20px;
-    line-height: 1.7;
-}
-.empty-tip .icon {
-    font-size: 42px;
-    display: block;
-    margin-bottom: 14px;
-}
-
-/* 加载中 */
-#loading {
-    display: none;
-    text-align: center;
-    padding: 30px;
-    color: var(--text-secondary);
-    font-size: 17px;
-}
-#loading .spinner {
-    display: inline-block;
-    width: 24px;
-    height: 24px;
-    border: 3px solid #444;
-    border-top-color: var(--accent);
-    border-radius: 50%;
-    animation: spin 0.8s linear infinite;
-    margin-right: 8px;
-    vertical-align: middle;
-}
-@keyframes spin {
-    to { transform: rotate(360deg); }
-}
-
-/* ================= 中间：控制按钮竖排 (~72px) ================= */
-#center-controls {
-    width: 72px;
-    min-width: 72px;
-    height: 100%;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    background: #0a0a14;
-    border-left: 1px solid rgba(108, 92, 231, 0.15);
-    border-right: 1px solid rgba(108, 92, 231, 0.15);
-    padding: 16px 0;
-    z-index: 3;
-}
-
-.ctrl-item {
-    width: 52px;
-    height: 52px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 2px;
-    border-radius: 12px;
-    background: rgba(255, 255, 255, 0.04);
-    border: 2px solid transparent;
-    cursor: pointer;
-    transition: all 0.18s ease;
-}
-.ctrl-item .ctrl-icon {
-    font-size: 22px;
-    line-height: 1;
-}
-.ctrl-item .ctrl-label {
-    font-size: 9px;
-    color: #666;
-    line-height: 1;
-}
-
-.ctrl-item:hover {
-    background: rgba(255, 255, 255, 0.08);
-}
-
-/* 播放按钮特殊样式 */
-.ctrl-item.ctrl-play {
-    width: 56px;
-    height: 56px;
-    border-radius: 50%;
-    background: var(--accent);
-    color: white;
-    box-shadow: 0 4px 20px rgba(108, 92, 231, 0.4);
-}
-.ctrl-item.ctrl-play .ctrl-icon {
-    font-size: 26px;
-}
-.ctrl-item.ctrl-play:hover {
-    background: var(--accent-light);
-    transform: scale(1.05);
-}
-
-/* 分隔线 */
-.ctrl-divider {
-    width: 36px;
-    height: 1px;
-    background: rgba(108, 92, 231, 0.3);
-    margin: 4px 0;
-}
-
-/* ================= 右栏：播放区 (~61%) ================= */
-#right-panel {
-    flex: 1;
-    height: 100%;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    position: relative;
-    overflow: hidden;
-    background: var(--bg-primary);
-}
-
-/* 背景模糊层 */
-#bg-blur {
-    position: absolute;
-    top: -40px;
-    left: -40px;
-    right: -40px;
-    bottom: -40px;
-    background-size: cover;
-    background-position: center;
-    filter: blur(60px) brightness(0.25) saturate(1.5);
-    z-index: 0;
-    transition: background-image 0.8s ease;
-}
-
-/* 播放内容区域 */
-#player-content {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    width: 100%;
-    max-width: 640px;
-    padding: 24px 36px;
-    position: relative;
-    z-index: 1;
-}
-
-/* 专辑封面 */
-#album-cover-wrapper {
-    width: 240px;
-    height: 240px;
-    border-radius: 18px;
-    overflow: hidden;
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
-    margin-bottom: 24px;
-    flex-shrink: 0;
-    background: var(--bg-card);
-}
-#album-cover {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    display: block;
-    transition: opacity 0.4s ease;
-}
-
-/* 歌曲信息 */
-#song-info {
-    text-align: center;
-    margin-bottom: 20px;
-    width: 100%;
-}
-#song-title {
-    font-size: 24px;
-    font-weight: 600;
-    color: var(--text-primary);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    max-width: 100%;
-}
-#song-artist {
-    font-size: 16px;
-    color: var(--text-secondary);
-    margin-top: 4px;
-}
-
-/* 进度条 — 纯显示，不可交互 */
-#progress-bar-wrapper {
-    width: 100%;
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    margin-bottom: 20px;
-    pointer-events: none; /* 禁止所有交互 */
+/* ==================== 底部进度条 ==================== */
+#bottom-bar{
+    height:var(--bottom-h);flex-shrink:0;
+    display:flex;align-items:center;gap:12px;
+    padding:0 20px;
+    background:rgba(0,0,0,0.5);
+    border-top:1px solid var(--border);
 }
 #progress-time-current,
-#progress-time-total {
-    font-size: 13px;
-    color: var(--text-dim);
-    min-width: 42px;
-    font-variant-numeric: tabular-nums;
+#progress-time-total{
+    font-size:13px;color:var(--text-3);
+    min-width:44px;font-variant-numeric:tabular-nums;
 }
-#progress-time-current { text-align: right; }
-
-#progress-track {
-    flex: 1;
-    height: 6px;
-    background: rgba(255, 255, 255, 0.1);
-    border-radius: 3px;
-    position: relative;
-    overflow: hidden;
+#progress-time-current{text-align:right;}
+#progress-track{
+    flex:1;height:6px;
+    background:rgba(255,255,255,0.08);
+    border-radius:3px;overflow:hidden;
+    position:relative;
 }
-#progress-fill {
-    height: 100%;
-    width: 0%;
-    background: linear-gradient(90deg, var(--accent), var(--accent-light));
-    border-radius: 3px;
-    transition: width 0.3s linear;
+#progress-fill{
+    height:100%;width:0%;
+    background:linear-gradient(90deg,var(--accent),var(--accent-lt));
+    border-radius:3px;transition:width 0.3s linear;
 }
 
-/* 歌词显示区 */
-#lyrics-container {
-    width: 100%;
-    max-height: 200px;
-    overflow-y: auto;
-    text-align: center;
-    padding: 14px;
-    background: rgba(255, 255, 255, 0.03);
-    border-radius: var(--radius);
-    border: 1px solid var(--border);
+/* ==================== 焦点系统 ==================== */
+.tv-focusable{
+    transition:all 0.18s ease;outline:none;
 }
-#lyrics-container::-webkit-scrollbar { width: 4px; }
-#lyrics-container::-webkit-scrollbar-thumb { background: #444; border-radius: 2px; }
-
-#lyrics-text {
-    font-size: 16px;
-    line-height: 2;
-    color: var(--text-secondary);
-    white-space: pre-wrap;
+.tv-focusable:focus{
+    border-color:var(--accent) !important;
+    box-shadow:0 0 0 3px var(--focus-glow),0 0 20px var(--focus-glow);
+    z-index:10;
 }
-
-.lyric-line {
-    padding: 3px 0;
-    transition: all 0.3s ease;
-    color: #666;
-    font-size: 16px;
+.song-item.tv-focusable:focus{
+    background:rgba(108,92,231,0.15) !important;
+    transform:scale(1.02);
 }
-.lyric-line.active {
-    color: var(--accent-light);
-    font-size: 19px;
-    font-weight: 600;
+.ctrl-btn.tv-focusable:focus{
+    transform:scale(1.08);
+    background:rgba(108,92,231,0.25) !important;
+    box-shadow:0 0 0 3px var(--focus-glow),0 0 30px rgba(108,92,231,0.3);
+}
+.del-btn.tv-focusable:focus{
+    background:rgba(231,76,60,0.2) !important;
+    color:var(--danger);
+    box-shadow:0 0 0 3px rgba(231,76,60,0.3);
+}
+.page-btn.tv-focusable:focus{
+    background:rgba(108,92,231,0.2) !important;
+    color:var(--text-1);
 }
 
-/* ================= 焦点交互（遥控器核心） ================= */
-.tv-focusable {
-    transition: all 0.18s ease;
-    outline: none;
+/* ==================== 弹窗 ==================== */
+.modal-overlay{
+    position:fixed;inset:0;
+    background:rgba(0,0,0,0.7);
+    display:flex;align-items:center;justify-content:center;
+    z-index:1000;
 }
+.modal-box{
+    background:#1a1a30;
+    border:2px solid var(--accent);
+    border-radius:18px;
+    padding:28px 36px;
+    min-width:340px;
+    box-shadow:0 20px 60px rgba(0,0,0,0.6);
+}
+.modal-title{
+    font-size:18px;font-weight:600;color:var(--text-1);
+    text-align:center;margin-bottom:22px;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+    max-width:360px;
+}
+.modal-btns{
+    display:flex;flex-direction:column;gap:10px;
+}
+.modal-btn{
+    display:flex;align-items:center;justify-content:center;gap:10px;
+    padding:14px 24px;
+    border-radius:12px;
+    background:rgba(255,255,255,0.08);
+    border:2px solid transparent;
+    font-size:17px;color:var(--text-1);
+    cursor:pointer;transition:all 0.18s ease;
+}
+.modal-btn:hover{background:rgba(255,255,255,0.12);}
+.modal-btn.tv-focusable:focus{
+    background:rgba(108,92,231,0.25) !important;
+    transform:scale(1.04);
+}
+.modal-btn-cancel{color:var(--text-3);}
+.modal-btn-cancel:hover{color:var(--danger);}
 
-.tv-focusable:focus {
-    border-color: var(--focus-color) !important;
-    box-shadow: 0 0 0 3px var(--focus-glow), 0 0 20px var(--focus-glow);
-    z-index: 10;
+/* ==================== Toast ==================== */
+.toast{
+    position:fixed;bottom:60px;left:50%;
+    transform:translateX(-50%) translateY(20px);
+    background:var(--danger);color:#fff;
+    padding:10px 28px;border-radius:12px;
+    font-size:16px;z-index:9999;opacity:0;
+    pointer-events:none;
+    transition:all 0.3s cubic-bezier(0.4,0,0.2,1);
+    box-shadow:0 8px 30px rgba(0,0,0,0.5);
+    max-width:480px;text-align:center;
 }
-
-/* 歌曲条目焦点 */
-.song-item.tv-focusable:focus {
-    background: var(--focus-bg) !important;
-    transform: scale(1.02);
-}
-
-/* 控制按钮焦点 */
-.ctrl-item.tv-focusable:focus {
-    transform: scale(1.18);
-    background: rgba(108, 92, 231, 0.25) !important;
-    box-shadow: 0 0 0 3px var(--focus-glow), 0 0 30px rgba(108, 92, 231, 0.3);
-}
-.ctrl-item.ctrl-play.tv-focusable:focus {
-    transform: scale(1.22);
-    background: var(--accent-light) !important;
-}
-
-/* 删除按钮焦点 */
-.delete-btn.tv-focusable:focus {
-    background: rgba(231, 76, 60, 0.15) !important;
-    color: var(--danger);
-    box-shadow: 0 0 0 3px rgba(231, 76, 60, 0.3);
-}
-
-/* ================= Toast 提示 ================= */
-.toast {
-    position: fixed;
-    bottom: 50px;
-    left: 50%;
-    transform: translateX(-50%) translateY(20px);
-    background-color: var(--danger);
-    color: white;
-    padding: 12px 32px;
-    border-radius: 12px;
-    font-size: 17px;
-    z-index: 9999;
-    opacity: 0;
-    pointer-events: none;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
-    max-width: 480px;
-    text-align: center;
-}
-.toast.show {
-    opacity: 1;
-    transform: translateX(-50%) translateY(0);
-}
-.toast.success {
-    background-color: var(--success);
-    color: #0a0a0f;
-}
-
-/* ================= 导航提示 ================= */
-#nav-hint {
-    position: fixed;
-    bottom: 12px;
-    right: 16px;
-    display: flex;
-    gap: 10px;
-    z-index: 100;
-    opacity: 0.4;
-    font-size: 12px;
-    color: #666;
-}
-#nav-hint .hint-key {
-    background: var(--bg-card);
-    padding: 3px 8px;
-    border-radius: 5px;
-    border: 1px solid var(--border);
-}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+.toast.success{background:var(--success);color:#0a0a0f;}
