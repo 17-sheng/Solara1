@@ -1,15 +1,9 @@
 /**
  * Solara TV — 电视遥控器优化版音乐播放器
  *
- * 布局：左歌词(35%) | 中封面+控制(30%) | 右列表(35%)
- * 底部：进度条横穿全屏
- *
  * 控制区两排五等分：
- *   Row0: [1列表] [2源] [3循环] [4视图] [5搜索]
- *   Row1: [6⏪]   [7⏮]  [8▶️]   [9⏭]   [10⏩]
- *
- * Zone: ctrl, list, modal
- * ←→ 在同行移动，↑↓ 跳到最近列，仅 5/10 → 跳搜索框
+ *   Row0: [📥列表] [📡网易云] [🔁循环] [📋视图] [🔎搜索]
+ *   Row1: [⏪]  [⏮]  [▶️]   [⏭]   [⏩]
  */
 document.addEventListener('DOMContentLoaded', () => {
 
@@ -19,10 +13,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const SOURCES = [
         { id: 'netease', name: '网易云' },
-        { id: 'tencent', name: 'QQ音乐' },
         { id: 'kuwo',    name: '酷我' },
-        { id: 'joox',    name: 'JOOX' },
-        { id: 'apple',   name: 'Apple' }
+        { id: 'joox',    name: 'JOOX' }
     ];
 
     const PLAY_MODES = [
@@ -115,29 +107,16 @@ document.addEventListener('DOMContentLoaded', () => {
         return Array.isArray(song.artist) ? song.artist.join(' / ') : (song.artist || '未知歌手');
     }
 
-    // ===================== 导航系统（核心重写） =====================
+    // ===================== 导航系统 =====================
 
-    /**
-     * ctrl 按钮网格（两排五列，完全对齐）：
-     *
-     *        col0        col1        col2        col3        col4
-     * row0: [goList]    [source]    [mode]      [view]      [search]
-     * row1: [rewind]    [prev]      [play]      [next]      [forward]
-     *
-     * 导航规则：
-     *   ←→  同行内移动（col ± 另一行的"最近列"（优先同列，否则最近列）
-     *  1）
-     *   ↑↓  跳到 col4 →  跳到 list zone（搜索框）
-     *   col0 ←  不动（边界）
-     */
     const ctrlGrid = [
         ['btn-go-list', 'btn-source', 'btn-mode',   'btn-view',   'btn-search'],
         ['btn-rewind',  'btn-prev',   'btn-play',   'btn-next',   'btn-forward']
     ];
     const ROWS = ctrlGrid.length;
-    const COLS = ctrlGrid[0].length; // 两排都是5列
+    const COLS = ctrlGrid[0].length;
 
-    let ctrlRow = 1, ctrlCol = 2; // 初始焦点：播放按钮(row1,col2)
+    let ctrlRow = 1, ctrlCol = 2;
 
     function getCtrlEl(r, c) {
         return (ctrlGrid[r] && ctrlGrid[r][c]) ? document.getElementById(ctrlGrid[r][c]) : null;
@@ -148,43 +127,21 @@ document.addEventListener('DOMContentLoaded', () => {
         if (el) el.focus();
     }
 
-    /**
-     * ctrl 区方向导航
-     * left/right: 同行内移动，到边界时不动
-     * up/down:    跳到另一行的最近列
-     */
     function ctrlNav(dir) {
         if (dir === 'left') {
-            if (ctrlCol > 0) {
-                ctrlCol--;
-                focusCtrl();
-            }
-            // col0 时不移动，留在原地
+            if (ctrlCol > 0) { ctrlCol--; focusCtrl(); }
         }
         else if (dir === 'right') {
-            if (ctrlCol < COLS - 1) {
-                ctrlCol++;
-                focusCtrl();
-            }
-            // col4 时不移动（由 keydown 处理跳转到 list zone）
+            if (ctrlCol < COLS - 1) { ctrlCol++; focusCtrl(); }
         }
         else if (dir === 'up') {
-            if (ctrlRow > 0) {
-                ctrlRow--;
-                // 保持同一列（两排都是5列，直接保持即可）
-                focusCtrl();
-            }
+            if (ctrlRow > 0) { ctrlRow--; focusCtrl(); }
         }
         else if (dir === 'down') {
-            if (ctrlRow < ROWS - 1) {
-                ctrlRow++;
-                // 保持同一列（两排都是5列，直接保持即可）
-                focusCtrl();
-            }
+            if (ctrlRow < ROWS - 1) { ctrlRow++; focusCtrl(); }
         }
     }
 
-    // list zone 条目
     function getListItems() {
         return Array.from(document.querySelectorAll('.tv-focusable[data-zone="list"]'));
     }
@@ -236,11 +193,8 @@ document.addEventListener('DOMContentLoaded', () => {
         modalOpen = false;
         pendingSong = null;
         currentZone = prevZone;
-        if (currentZone === 'list') {
-            focusListItem(lastIndex.list);
-        } else {
-            focusCtrl();
-        }
+        if (currentZone === 'list') focusListItem(lastIndex.list);
+        else focusCtrl();
     }
 
     modalPlay.addEventListener('click', () => {
@@ -281,7 +235,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const ae  = document.activeElement;
         const isInput = (ae === searchInput);
 
-        // ===== 弹窗模式 =====
+        // 弹窗模式
         if (modalOpen) {
             if ([37,38,39,40,13,27].includes(key)) e.preventDefault();
             if (key === 27 || (key === 8 && !isInput)) { closeModal(); return; }
@@ -294,14 +248,10 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        // ===== 空格：播放/暂停 =====
-        if (key === 32 && !isInput) {
-            e.preventDefault();
-            togglePlay();
-            return;
-        }
+        // 空格
+        if (key === 32 && !isInput) { e.preventDefault(); togglePlay(); return; }
 
-        // ===== 输入框特殊处理 =====
+        // 输入框
         if (isInput) {
             if (key === 13) {
                 e.preventDefault();
@@ -323,30 +273,21 @@ document.addEventListener('DOMContentLoaded', () => {
                 e.preventDefault();
                 lastIndex.list = 0;
                 currentZone = 'ctrl';
-                ctrlRow = 0; ctrlCol = 4; // 搜索框 ← 回到搜索按钮
+                ctrlRow = 0; ctrlCol = 4;
                 focusCtrl();
                 return;
-            }
-            if (key === 39 && searchInput.selectionStart === searchInput.value.length) {
-                // 光标在末尾，→ 不拦截，让浏览器自然处理
-                // 但如果输入框为空且右侧有歌曲列表项，也可以选择跳过去
-                // 这里保持默认行为，用户按 ↓ 进入列表
             }
             return;
         }
 
-        // ===== 非输入框：屏蔽方向键默认行为 =====
         if ([37,38,39,40,13,27].includes(key)) e.preventDefault();
 
-        // ===== Ctrl Zone =====
+        // Ctrl Zone
         if (currentZone === 'ctrl') {
             switch (key) {
-                case 37: // ←
-                    ctrlNav('left');
-                    break;
-                case 39: // →
+                case 37: ctrlNav('left'); break;
+                case 39:
                     if (ctrlCol === COLS - 1) {
-                        // 最右列（col4=第5/10按钮）→ 跳到 list zone
                         currentZone = 'list';
                         searchInput.focus();
                         lastIndex.list = 0;
@@ -354,30 +295,23 @@ document.addEventListener('DOMContentLoaded', () => {
                         ctrlNav('right');
                     }
                     break;
-                case 38: // ↑
-                    ctrlNav('up');
-                    break;
-                case 40: // ↓
-                    ctrlNav('down');
-                    break;
-                case 13: // OK
-                    if (ae) ae.click();
-                    break;
+                case 38: ctrlNav('up'); break;
+                case 40: ctrlNav('down'); break;
+                case 13: if (ae) ae.click(); break;
             }
             return;
         }
 
-        // ===== List Zone =====
+        // List Zone
         if (currentZone === 'list') {
             const items = getListItems();
             let ci = items.indexOf(ae);
             if (ci === -1) ci = 0;
 
             switch (key) {
-                case 38: // ↑
+                case 38:
                     if (ci > 0) {
                         let t = ci - 1;
-                        // 跳过 del-btn
                         if (items[t] && items[t].classList.contains('del-btn')) t--;
                         if (t >= 0) {
                             items[t].focus();
@@ -388,8 +322,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         }
                     }
                     break;
-
-                case 40: // ↓
+                case 40:
                     if (ci < items.length - 1) {
                         let t = ci + 1;
                         if (items[t] && items[t].classList.contains('del-btn')) t++;
@@ -400,34 +333,25 @@ document.addEventListener('DOMContentLoaded', () => {
                         }
                     }
                     break;
-
-                case 37: // ←
+                case 37:
                     if (ae && ae.classList.contains('del-btn')) {
-                        // del-btn → 回到同行 song-item
                         if (ci > 0) { items[ci-1].focus(); lastIndex.list = ci-1; }
                     } else {
-                        // list → ctrl zone
                         lastIndex.list = ci;
                         currentZone = 'ctrl';
-                        // 智能映射：搜索框 → 搜索按钮(col4)，列表项 → 播放按钮(col2)
-                        if (ae === searchInput) {
-                            ctrlRow = 0; ctrlCol = 4;
-                        } else {
-                            ctrlRow = 1; ctrlCol = 2;
-                        }
+                        if (ae === searchInput) { ctrlRow = 0; ctrlCol = 4; }
+                        else { ctrlRow = 1; ctrlCol = 2; }
                         focusCtrl();
                     }
                     break;
-
-                case 39: // →
+                case 39:
                     if (ae && ae.classList.contains('song-item') &&
                         items[ci+1] && items[ci+1].classList.contains('del-btn')) {
                         items[ci+1].focus();
                         lastIndex.list = ci+1;
                     }
                     break;
-
-                case 13: // OK
+                case 13:
                     if (ae) ae.click();
                     break;
             }
@@ -437,6 +361,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // ===================== 按钮事件 =====================
 
+    // 搜索
     btnSearch.addEventListener('click', () => {
         const kw = searchInput.value.trim();
         if (kw) {
@@ -449,12 +374,15 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    // 音源（显示当前源名称）
     btnSource.addEventListener('click', () => {
         currentSourceIdx = (currentSourceIdx + 1) % SOURCES.length;
         const s = SOURCES[currentSourceIdx];
+        btnSource.querySelector('.c-text').innerText = s.name;
         showToast('音源: ' + s.name, true);
     });
 
+    // 模式
     btnMode.addEventListener('click', () => {
         currentModeIdx = (currentModeIdx + 1) % PLAY_MODES.length;
         const m = PLAY_MODES[currentModeIdx];
@@ -462,6 +390,7 @@ document.addEventListener('DOMContentLoaded', () => {
         showToast('模式: ' + m.desc, true);
     });
 
+    // 播放/暂停
     btnPlay.addEventListener('click', togglePlay);
     function togglePlay() {
         if (audio.src) {
@@ -494,6 +423,7 @@ document.addEventListener('DOMContentLoaded', () => {
         focusFirstSong();
     });
 
+    // 视图切换（📋 播放列表 / 📂 搜索结果）
     btnView.addEventListener('click', () => {
         currentView = currentView === 'search' ? 'playlist' : 'search';
         updateViewIcon();
@@ -502,7 +432,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     function updateViewIcon() {
-        btnView.querySelector('.c-icon').innerText = currentView === 'playlist' ? '🔍' : '📋';
+        btnView.querySelector('.c-icon').innerText = currentView === 'playlist' ? '📋' : '📂';
     }
 
     btnPrevPage.addEventListener('click', () => {
@@ -842,6 +772,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // ===================== 初始化 =====================
     renderCurrentView();
+
+    // 初始化音源文字显示
+    btnSource.querySelector('.c-text').innerText = SOURCES[currentSourceIdx].name;
 
     setTimeout(() => {
         currentZone = 'ctrl';
