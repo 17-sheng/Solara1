@@ -245,11 +245,11 @@ html, body {
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 10px;
+    gap: 8px;
     background: #0a0a14;
     border-left: 1px solid rgba(108, 92, 231, 0.15);
     border-right: 1px solid rgba(108, 92, 231, 0.15);
-    padding: 20px 0;
+    padding: 16px 0;
     z-index: 3;
 }
 
@@ -385,13 +385,14 @@ html, body {
     margin-top: 4px;
 }
 
-/* 进度条 */
+/* 进度条 — 纯显示，不可交互 */
 #progress-bar-wrapper {
     width: 100%;
     display: flex;
     align-items: center;
     gap: 12px;
     margin-bottom: 20px;
+    pointer-events: none; /* 禁止所有交互 */
 }
 #progress-time-current,
 #progress-time-total {
@@ -407,11 +408,8 @@ html, body {
     height: 6px;
     background: rgba(255, 255, 255, 0.1);
     border-radius: 3px;
-    cursor: pointer;
     position: relative;
     overflow: hidden;
-    border: 2px solid transparent;
-    transition: all 0.2s ease;
 }
 #progress-fill {
     height: 100%;
@@ -483,103 +481,11 @@ html, body {
     background: var(--accent-light) !important;
 }
 
-/* 进度条 (仅展示，去除了 cursor 和 border 变化) */
-#progress-bar-wrapper {
-    width: 100%;
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    margin-bottom: 20px;
-}
-
-#progress-time-current,
-#progress-time-total {
-    font-size: 13px;
-    color: var(--text-dim);
-    min-width: 42px;
-    font-variant-numeric: tabular-nums;
-}
-#progress-time-current { text-align: right; }
-
-#progress-track {
-    flex: 1;
-    height: 6px;
-    background: rgba(255, 255, 255, 0.1);
-    border-radius: 3px;
-    position: relative;
-    overflow: hidden;
-}
-
-#progress-fill {
-    height: 100%;
-    width: 0%;
-    background: linear-gradient(90deg, var(--accent), var(--accent-light));
-    border-radius: 3px;
-    transition: width 0.3s linear;
-}
-
-/* 快进/快退按钮样式 */
-.progress-btn {
-    width: 36px;
-    height: 36px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: rgba(255, 255, 255, 0.05);
-    border-radius: 50%;
-    cursor: pointer;
-    font-size: 16px;
-    color: var(--text-primary);
-    border: 2px solid transparent;
-    transition: all 0.18s ease;
-    flex-shrink: 0;
-}
-
-.progress-btn:hover {
-    background: rgba(255, 255, 255, 0.1);
-}
-
-
-/* ================= 焦点交互（遥控器核心） ================= */
-.tv-focusable {
-    transition: all 0.18s ease;
-    outline: none;
-}
-.tv-focusable:focus {
-    border-color: var(--focus-color) !important;
-    box-shadow: 0 0 0 3px var(--focus-glow), 0 0 20px var(--focus-glow);
-    z-index: 10;
-}
-
-/* 歌曲条目焦点 */
-.song-item.tv-focusable:focus {
-    background: var(--focus-bg) !important;
-    transform: scale(1.02);
-}
-
-/* 控制按钮焦点 */
-.ctrl-item.tv-focusable:focus {
-    transform: scale(1.18);
-    background: rgba(108, 92, 231, 0.25) !important;
-    box-shadow: 0 0 0 3px var(--focus-glow), 0 0 30px rgba(108, 92, 231, 0.3);
-}
-.ctrl-item.ctrl-play.tv-focusable:focus {
-    transform: scale(1.22);
-    background: var(--accent-light) !important;
-}
-
 /* 删除按钮焦点 */
 .delete-btn.tv-focusable:focus {
     background: rgba(231, 76, 60, 0.15) !important;
     color: var(--danger);
     box-shadow: 0 0 0 3px rgba(231, 76, 60, 0.3);
-}
-
-/* 快进快退按钮焦点 */
-.progress-btn.tv-focusable:focus {
-    background: var(--accent) !important;
-    transform: scale(1.2);
-    box-shadow: 0 0 0 3px var(--focus-glow), 0 0 20px var(--focus-glow);
 }
 
 /* ================= Toast 提示 ================= */
