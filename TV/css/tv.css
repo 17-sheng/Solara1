@@ -5,7 +5,6 @@
    控制区：两排 × 五按钮，等宽等高
    ============================================================ */
 
-/* ===== CSS 变量 ===== */
 :root {
     --bg-deep: #05050c;
     --bg-panel: #0a0a16;
@@ -25,7 +24,6 @@
     --ctrl-gap: 8px;
 }
 
-/* ===== 重置 ===== */
 *{margin:0;padding:0;box-sizing:border-box;}
 html,body{
     width:100%;height:100%;overflow:hidden;
@@ -34,12 +32,10 @@ html,body{
     font-size:18px;-webkit-font-smoothing:antialiased;user-select:none;
 }
 
-/* ===== 整体容器 ===== */
 #tv-app{
     width:100%;height:100%;display:flex;flex-direction:column;
 }
 
-/* ===== 主体三栏 ===== */
 #main-area{
     flex:1;display:flex;overflow:hidden;
     height:calc(100% - var(--bottom-h));
@@ -110,7 +106,6 @@ html,body{
     padding:20px 16px 12px;
 }
 
-/* 封面区 */
 #cover-area{
     display:flex;flex-direction:column;align-items:center;
     flex:1;justify-content:center;
@@ -140,7 +135,7 @@ html,body{
     font-size:14px;color:var(--text-2);margin-top:4px;
 }
 
-/* ===== 控制按钮区：两排五等分 ===== */
+/* ===== 控制按钮区 ===== */
 #controls-area{
     flex-shrink:0;
     width:100%;
@@ -157,7 +152,7 @@ html,body{
 
 .ctrl-btn{
     flex:1;
-    display:flex;align-items:center;justify-content:center;
+    display:flex;align-items:center;justify-content:center;gap:6px;
     height:52px;
     border-radius:12px;
     background:rgba(255,255,255,0.06);
@@ -165,9 +160,10 @@ html,body{
     cursor:pointer;
     transition:all 0.18s ease;
     white-space:nowrap;
-    padding:0;
+    padding:0 6px;
 }
-.ctrl-btn .c-icon{font-size:22px;line-height:1;}
+.ctrl-btn .c-icon{font-size:22px;line-height:1;flex-shrink:0;}
+.ctrl-btn .c-text{font-size:12px;color:var(--text-2);flex-shrink:0;}
 .ctrl-btn:hover{background:rgba(255,255,255,0.1);}
 
 /* ==================== 右段：搜索+列表 ==================== */
