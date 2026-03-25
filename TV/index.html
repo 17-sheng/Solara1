@@ -7,115 +7,131 @@
     <link rel="stylesheet" href="css/tv.css">
 </head>
 <body>
-    <div id="tv-container">
-        <!-- ===== 左栏：搜索 + 歌曲列表 (33%) ===== -->
-        <div id="left-panel">
-            <!-- 搜索框 -->
-            <div id="search-bar">
-                <input id="search-input" type="text" placeholder="输入歌名/歌手搜索..."
-                       class="tv-focusable" data-zone="left" tabindex="0">
-            </div>
-            <!-- 歌曲列表 -->
-            <div id="song-list-wrapper">
-                <div id="loading"><span class="spinner"></span>搜索中...</div>
-                <div id="song-list">
-                    <div class="empty-tip">
-                        <span class="icon">📋</span>
-                        播放列表为空<br>搜索歌曲后按 OK 添加
+    <div id="tv-app">
+
+        <!-- ===== 主体三栏 ===== -->
+        <div id="main-area">
+
+            <!-- ===== 左段：歌词 (~35%) ===== -->
+            <div id="panel-lyrics">
+                <div id="lyrics-header">
+                    <span class="lyrics-icon">🎵</span>
+                    <span id="lyrics-title">歌词</span>
+                </div>
+                <div id="lyrics-scroll">
+                    <div id="lyrics-content">
+                        <div class="lyrics-placeholder">等待播放...</div>
                     </div>
                 </div>
             </div>
-        </div>
 
-        <!-- ===== 中间：控制按钮竖排 ===== -->
-        <div id="center-controls">
-            <div id="btn-focus-list" class="ctrl-item tv-focusable" data-zone="ctrl" tabindex="0" title="进入列表">
-                <span class="ctrl-icon">📥</span>
-                <span class="ctrl-label">列表</span>
-            </div>
-            <div id="btn-search" class="ctrl-item tv-focusable" data-zone="ctrl" tabindex="0" title="搜索">
-                <span class="ctrl-icon">🔍</span>
-                <span class="ctrl-label">搜索</span>
-            </div>
-            <div id="btn-source" class="ctrl-item tv-focusable" data-zone="ctrl" tabindex="0" title="切换音源">
-                <span class="ctrl-icon">📡</span>
-                <span class="ctrl-label">网易云</span>
-            </div>
-
-            <div class="ctrl-divider"></div>
-
-            <div id="btn-rewind" class="ctrl-item tv-focusable" data-zone="ctrl" tabindex="0" title="快退10秒">
-                <span class="ctrl-icon">⏪</span>
-                <span class="ctrl-label">-10s</span>
-            </div>
-            <div id="btn-prev" class="ctrl-item tv-focusable" data-zone="ctrl" tabindex="0" title="上一首">
-                <span class="ctrl-icon">⏮</span>
-                <span class="ctrl-label">上一首</span>
-            </div>
-            <div id="btn-play" class="ctrl-item ctrl-play tv-focusable" data-zone="ctrl" tabindex="0" title="播放">
-                <span class="ctrl-icon">▶️</span>
-            </div>
-            <div id="btn-next" class="ctrl-item tv-focusable" data-zone="ctrl" tabindex="0" title="下一首">
-                <span class="ctrl-icon">⏭</span>
-                <span class="ctrl-label">下一首</span>
-            </div>
-            <div id="btn-forward" class="ctrl-item tv-focusable" data-zone="ctrl" tabindex="0" title="快进10秒">
-                <span class="ctrl-icon">⏩</span>
-                <span class="ctrl-label">+10s</span>
-            </div>
-
-            <div class="ctrl-divider"></div>
-
-            <div id="btn-mode" class="ctrl-item tv-focusable" data-zone="ctrl" tabindex="0" title="列表循环">
-                <span class="ctrl-icon">🔁</span>
-                <span class="ctrl-label">循环</span>
-            </div>
-            <div id="btn-view" class="ctrl-item tv-focusable" data-zone="ctrl" tabindex="0" title="切换视图">
-                <span class="ctrl-icon">🔍</span>
-                <span class="ctrl-label">搜索</span>
-            </div>
-        </div>
-
-        <!-- ===== 右栏：播放区 (~61%) ===== -->
-        <div id="right-panel">
-            <div id="bg-blur"></div>
-            <div id="player-content">
-                <!-- 专辑封面 -->
-                <div id="album-cover-wrapper">
-                    <img id="album-cover" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 400'%3E%3Crect fill='%231a1a2e' width='400' height='400'/%3E%3Ctext x='200' y='200' text-anchor='middle' dominant-baseline='central' font-size='80' fill='%23333'%3E🎵%3C/text%3E%3C/svg%3E" alt="封面">
-                </div>
-                <!-- 歌曲信息 -->
-                <div id="song-info">
-                    <div id="song-title">Solara TV</div>
-                    <div id="song-artist">准备播放</div>
-                </div>
-                <!-- 进度条（纯显示，不可交互） -->
-                <div id="progress-bar-wrapper">
-                    <span id="progress-time-current">00:00</span>
-                    <div id="progress-track">
-                        <div id="progress-fill"></div>
+            <!-- ===== 中段：封面 + 控制 (~30%) ===== -->
+            <div id="panel-center">
+                <div id="bg-blur"></div>
+                <div id="center-inner">
+                    <div id="cover-area">
+                        <div id="cover-wrap">
+                            <img id="album-cover" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 400'%3E%3Crect fill='%231a1a2e' width='400' height='400'/%3E%3Ctext x='200' y='200' text-anchor='middle' dominant-baseline='central' font-size='80' fill='%23444'%3E🎵%3C/text%3E%3C/svg%3E" alt="封面">
+                        </div>
+                        <div id="song-info">
+                            <div id="song-title">Solara TV</div>
+                            <div id="song-artist">准备播放</div>
+                        </div>
                     </div>
-                    <span id="progress-time-total">00:00</span>
+                    <div id="controls-area">
+                        <!-- 第一排：功能类 -->
+                        <div class="ctrl-row">
+                            <div id="btn-go-list" class="ctrl-btn tv-focusable" data-zone="ctrl" tabindex="0" title="进入列表">
+                                <span class="c-icon">📥</span>
+                            </div>
+                            <div id="btn-source" class="ctrl-btn tv-focusable" data-zone="ctrl" tabindex="0" title="切换音源">
+                                <span class="c-icon">📡</span>
+                            </div>
+                            <div id="btn-mode" class="ctrl-btn tv-focusable" data-zone="ctrl" tabindex="0" title="播放模式">
+                                <span class="c-icon">🔁</span>
+                            </div>
+                            <div id="btn-view" class="ctrl-btn tv-focusable" data-zone="ctrl" tabindex="0" title="切换视图">
+                                <span class="c-icon">🔍</span>
+                            </div>
+                            <div id="btn-search" class="ctrl-btn tv-focusable" data-zone="ctrl" tabindex="0" title="搜索">
+                                <span class="c-icon">🔎</span>
+                            </div>
+                        </div>
+                        <!-- 第二排：播放控制类 -->
+                        <div class="ctrl-row">
+                            <div id="btn-rewind" class="ctrl-btn tv-focusable" data-zone="ctrl" tabindex="0" title="快退10秒">
+                                <span class="c-icon">⏪</span>
+                            </div>
+                            <div id="btn-prev" class="ctrl-btn tv-focusable" data-zone="ctrl" tabindex="0" title="上一首">
+                                <span class="c-icon">⏮</span>
+                            </div>
+                            <div id="btn-play" class="ctrl-btn tv-focusable" data-zone="ctrl" tabindex="0" title="播放">
+                                <span class="c-icon">▶️</span>
+                            </div>
+                            <div id="btn-next" class="ctrl-btn tv-focusable" data-zone="ctrl" tabindex="0" title="下一首">
+                                <span class="c-icon">⏭</span>
+                            </div>
+                            <div id="btn-forward" class="ctrl-btn tv-focusable" data-zone="ctrl" tabindex="0" title="快进10秒">
+                                <span class="c-icon">⏩</span>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-                <!-- 歌词 -->
-                <div id="lyrics-container">
-                    <div id="lyrics-text">暂无歌词</div>
+            </div>
+
+            <!-- ===== 右段：搜索 + 列表 (~35%) ===== -->
+            <div id="panel-list">
+                <div id="search-bar">
+                    <input id="search-input" type="text" placeholder="输入歌名/歌手..."
+                           class="tv-focusable" data-zone="list" tabindex="0">
+                </div>
+                <div id="list-scroll">
+                    <div id="loading"><span class="spinner"></span>搜索中...</div>
+                    <div id="song-list">
+                        <div class="empty-tip">
+                            <span class="e-icon">📋</span>
+                            播放列表为空<br>搜索歌曲添加
+                        </div>
+                    </div>
+                    <div id="pagination" style="display:none;">
+                        <div id="btn-prev-page" class="page-btn tv-focusable" data-zone="list" tabindex="0">◀ 上一页</div>
+                        <span id="page-info">1 / 1</span>
+                        <div id="btn-next-page" class="page-btn tv-focusable" data-zone="list" tabindex="0">下一页 ▶</div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <div id="bottom-bar">
+            <span id="progress-time-current">00:00</span>
+            <div id="progress-track">
+                <div id="progress-fill"></div>
+            </div>
+            <span id="progress-time-total">00:00</span>
+        </div>
+
+    </div>
+
+    <div id="toast" class="toast">提示</div>
+
+    <div id="action-modal" class="modal-overlay" style="display:none;">
+        <div class="modal-box">
+            <div class="modal-title" id="modal-song-name">歌曲名</div>
+            <div class="modal-btns">
+                <div id="modal-play" class="modal-btn tv-focusable" data-zone="modal" tabindex="0">
+                    <span class="c-icon">▶️</span> 直接播放
+                </div>
+                <div id="modal-add" class="modal-btn tv-focusable" data-zone="modal" tabindex="0">
+                    <span class="c-icon">➕</span> 添加到列表
+                </div>
+                <div id="modal-cancel" class="modal-btn modal-btn-cancel tv-focusable" data-zone="modal" tabindex="0">
+                    <span class="c-icon">✕</span> 取消
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Toast -->
-    <div id="toast" class="toast">提示信息</div>
-
-    <!-- 导航提示 -->
-    <div id="nav-hint">
-        <span class="hint-key">↑↓←→ 导航</span>
-        <span class="hint-key">OK 确认</span>
-        <span class="hint-key">空格 播放/暂停</span>
-    </div>
-
-    <!-- Audio -->
     <audio id="audio-player" preload="auto"></audio>
 
     <script src="js/tv.js"></script>
