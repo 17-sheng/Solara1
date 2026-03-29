@@ -4,6 +4,11 @@
  * 控制区两排五等分：
  *   Row0: [📥列表] [📡网易云] [🔁循环] [📋视图] [🔎搜索]
  *   Row1: [⏪]  [⏮]  [▶️]   [⏭]   [⏩]
+ *
+ * 搜索结果：行内 [▶️] [➕] 按钮替代弹窗
+ * 播放列表：点击播放，右滑 [✕] 删除
+ * 歌曲名称：截断省略不滚动
+ * 歌手/专辑：超长时 marquee 滚动
  */
 document.addEventListener('DOMContentLoaded', () => {
 
@@ -28,58 +33,48 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentSourceIdx = 0;
     let currentModeIdx   = 0;
     let currentView      = 'playlist';
-    let searchResults     = [];
-    let playlist          = JSON.parse(localStorage.getItem('tv_playlist') || '[]');
-    let currentPlayIdx    = -1;
-    let parsedLyrics      = [];
-    let isSearching       = false;
+    let searchResults    = [];
+    let playlist         = JSON.parse(localStorage.getItem('tv_playlist') || '[]');
+    let currentPlayIdx   = -1;
+    let parsedLyrics     = [];
+    let isSearching      = false;
 
-    let searchKeyword     = '';
-    let searchPage        = 1;
-    let hasMorePages      = false;
+    let searchKeyword    = '';
+    let searchPage       = 1;
+    let hasMorePages     = false;
 
-    let modalOpen         = false;
-    let pendingSong       = null;
-
-    let currentZone       = 'ctrl';
-    let lastIndex         = { ctrl: 0, list: 0 };
-    let prevZone          = 'ctrl';
+    let currentZone      = 'ctrl';
+    let lastIndex        = { ctrl: 0, list: 0 };
+    let prevZone         = 'ctrl';
 
     // ===================== DOM =====================
-    const searchInput     = document.getElementById('search-input');
-    const btnSearch       = document.getElementById('btn-search');
-    const btnSource       = document.getElementById('btn-source');
-    const btnMode         = document.getElementById('btn-mode');
-    const btnPlay         = document.getElementById('btn-play');
-    const btnPrev         = document.getElementById('btn-prev');
-    const btnNext         = document.getElementById('btn-next');
-    const btnRewind       = document.getElementById('btn-rewind');
-    const btnForward      = document.getElementById('btn-forward');
-    const btnGoList       = document.getElementById('btn-go-list');
-    const btnView         = document.getElementById('btn-view');
-    const btnPrevPage     = document.getElementById('btn-prev-page');
-    const btnNextPage     = document.getElementById('btn-next-page');
-    const pageInfo        = document.getElementById('page-info');
-    const pagination      = document.getElementById('pagination');
-    const progressFill    = document.getElementById('progress-fill');
-    const timeCurrent     = document.getElementById('progress-time-current');
-    const timeTotal       = document.getElementById('progress-time-total');
-    const lyricsContent   = document.getElementById('lyrics-content');
-    const lyricsScroll    = document.getElementById('lyrics-scroll');
-    const lyricsTitle     = document.getElementById('lyrics-title');
-    const albumCover      = document.getElementById('album-cover');
-    const bgBlur          = document.getElementById('bg-blur');
-    const toastEl         = document.getElementById('toast');
-    const songListEl      = document.getElementById('song-list');
-    const listScroll      = document.getElementById('list-scroll');
-    const loadingEl       = document.getElementById('loading');
-    const audio           = document.getElementById('audio-player');
-
-    const actionModal     = document.getElementById('action-modal');
-    const modalSongName   = document.getElementById('modal-song-name');
-    const modalPlay       = document.getElementById('modal-play');
-    const modalAdd        = document.getElementById('modal-add');
-    const modalCancel     = document.getElementById('modal-cancel');
+    const searchInput   = document.getElementById('search-input');
+    const btnSearch     = document.getElementById('btn-search');
+    const btnSource     = document.getElementById('btn-source');
+    const btnMode       = document.getElementById('btn-mode');
+    const btnPlay       = document.getElementById('btn-play');
+    const btnPrev       = document.getElementById('btn-prev');
+    const btnNext       = document.getElementById('btn-next');
+    const btnRewind     = document.getElementById('btn-rewind');
+    const btnForward    = document.getElementById('btn-forward');
+    const btnGoList     = document.getElementById('btn-go-list');
+    const btnView       = document.getElementById('btn-view');
+    const btnPrevPage   = document.getElementById('btn-prev-page');
+    const btnNextPage   = document.getElementById('btn-next-page');
+    const pageInfo      = document.getElementById('page-info');
+    const pagination    = document.getElementById('pagination');
+    const progressFill  = document.getElementById('progress-fill');
+    const timeCurrent   = document.getElementById('progress-time-current');
+    const timeTotal     = document.getElementById('progress-time-total');
+    const lyricsContent = document.getElementById('lyrics-content');
+    const lyricsScroll  = document.getElementById('lyrics-scroll');
+    const lyricsTitle   = document.getElementById('lyrics-title');
+    const albumCover    = document.getElementById('album-cover');
+    const bgBlur        = document.getElementById('bg-blur');
+    const toastEl       = document.getElementById('toast');
+    const songListEl    = document.getElementById('song-list');
+    const loadingEl     = document.getElementById('loading');
+    const audio         = document.getElementById('audio-player');
 
     // ===================== Toast =====================
     let toastTimer;
@@ -90,7 +85,7 @@ document.addEventListener('DOMContentLoaded', () => {
         toastTimer = setTimeout(() => toastEl.classList.remove('show'), 2500);
     }
 
-    // ===================== 工具 =====================
+    // ===================== 工具函数 =====================
     function fmt(s) {
         if (!s || isNaN(s)) return '00:00';
         return String(Math.floor(s/60)).padStart(2,'0') + ':' + String(Math.floor(s%60)).padStart(2,'0');
@@ -107,8 +102,48 @@ document.addEventListener('DOMContentLoaded', () => {
         return Array.isArray(song.artist) ? song.artist.join(' / ') : (song.artist || '未知歌手');
     }
 
-    // ===================== 导航系统 =====================
+    // ===================== 长文本滚动检测 =====================
+    function initMarquee(el) {
+        if (!el) return;
+        const textEl = el.querySelector('.scroll-text');
+        if (!textEl) return;
 
+        // 重置状态
+        textEl.classList.remove('marquee');
+        textEl.style.removeProperty('--marquee-d');
+        textEl.style.animationDuration = '';
+
+        requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+                const containerW = el.clientWidth;
+                const textW = textEl.scrollWidth;
+                if (textW <= containerW) return;
+
+                // 复制文本实现无缝循环
+                const original = textEl.textContent;
+                textEl.textContent = original + '   ' + original;
+
+                const totalW = textEl.scrollWidth;
+                const halfW = totalW / 2;
+                const distance = halfW + 40;
+                const speed = 60;
+                const duration = distance / speed;
+
+                textEl.style.setProperty('--marquee-d', '-' + distance + 'px');
+                textEl.style.animationDuration = duration + 's';
+                textEl.classList.add('marquee');
+            });
+        });
+    }
+
+    function initAllMarquees() {
+        // 改动：只对歌手/专辑信息初始化滚动，歌曲名称不滚动
+        document.querySelectorAll('.s-detail.scroll-wrap').forEach(initMarquee);
+        const artistEl = document.getElementById('song-artist');
+        if (artistEl) initMarquee(artistEl);
+    }
+
+    // ===================== 焦点导航系统 =====================
     const ctrlGrid = [
         ['btn-go-list', 'btn-source', 'btn-mode',   'btn-view',   'btn-search'],
         ['btn-rewind',  'btn-prev',   'btn-play',   'btn-next',   'btn-forward']
@@ -121,31 +156,20 @@ document.addEventListener('DOMContentLoaded', () => {
     function getCtrlEl(r, c) {
         return (ctrlGrid[r] && ctrlGrid[r][c]) ? document.getElementById(ctrlGrid[r][c]) : null;
     }
-
     function focusCtrl() {
         const el = getCtrlEl(ctrlRow, ctrlCol);
         if (el) el.focus();
     }
-
     function ctrlNav(dir) {
-        if (dir === 'left') {
-            if (ctrlCol > 0) { ctrlCol--; focusCtrl(); }
-        }
-        else if (dir === 'right') {
-            if (ctrlCol < COLS - 1) { ctrlCol++; focusCtrl(); }
-        }
-        else if (dir === 'up') {
-            if (ctrlRow > 0) { ctrlRow--; focusCtrl(); }
-        }
-        else if (dir === 'down') {
-            if (ctrlRow < ROWS - 1) { ctrlRow++; focusCtrl(); }
-        }
+        if (dir === 'left')  { if (ctrlCol > 0)         { ctrlCol--; focusCtrl(); } }
+        if (dir === 'right') { if (ctrlCol < COLS - 1)  { ctrlCol++; focusCtrl(); } }
+        if (dir === 'up')    { if (ctrlRow > 0)         { ctrlRow--; focusCtrl(); } }
+        if (dir === 'down')  { if (ctrlRow < ROWS - 1)  { ctrlRow++; focusCtrl(); } }
     }
 
     function getListItems() {
         return Array.from(document.querySelectorAll('.tv-focusable[data-zone="list"]'));
     }
-
     function focusListItem(idx) {
         const items = getListItems();
         if (items.length === 0) return;
@@ -156,7 +180,6 @@ document.addEventListener('DOMContentLoaded', () => {
             items[i].scrollIntoView({ block: 'nearest', behavior: 'smooth' });
         }
     }
-
     function focusFirstSong() {
         const songs = songListEl.querySelectorAll('.song-item.tv-focusable');
         if (songs.length > 0) {
@@ -173,85 +196,16 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    function getModalItems() {
-        return Array.from(document.querySelectorAll('.tv-focusable[data-zone="modal"]'));
-    }
-
-    // ===================== 弹窗 =====================
-    function openModal(song) {
-        pendingSong = song;
-        modalSongName.innerText = song.name || '未知歌曲';
-        actionModal.style.display = 'flex';
-        modalOpen = true;
-        prevZone = currentZone;
-        currentZone = 'modal';
-        setTimeout(() => modalPlay.focus(), 50);
-    }
-
-    function closeModal() {
-        actionModal.style.display = 'none';
-        modalOpen = false;
-        pendingSong = null;
-        currentZone = prevZone;
-        if (currentZone === 'list') focusListItem(lastIndex.list);
-        else focusCtrl();
-    }
-
-    modalPlay.addEventListener('click', () => {
-        if (!pendingSong) return;
-        const song = pendingSong;
-        const exists = playlist.findIndex(s => s.id === song.id && s.source === song.source);
-        if (exists >= 0) {
-            currentPlayIdx = exists;
-        } else {
-            playlist.push(song);
-            savePlaylist();
-            currentPlayIdx = playlist.length - 1;
-        }
-        playSong(currentPlayIdx);
-        showToast('正在播放: ' + (song.name || ''), true);
-        closeModal();
-    });
-
-    modalAdd.addEventListener('click', () => {
-        if (!pendingSong) return;
-        const song = pendingSong;
-        const exists = playlist.some(s => s.id === song.id && s.source === song.source);
-        if (exists) {
-            showToast('该歌曲已在列表中');
-        } else {
-            playlist.push(song);
-            savePlaylist();
-            showToast('已添加: ' + (song.name || ''), true);
-        }
-        closeModal();
-    });
-
-    modalCancel.addEventListener('click', closeModal);
-
     // ===================== 键盘事件 =====================
     document.addEventListener('keydown', (e) => {
         const key = e.keyCode;
         const ae  = document.activeElement;
         const isInput = (ae === searchInput);
 
-        // 弹窗模式
-        if (modalOpen) {
-            if ([37,38,39,40,13,27].includes(key)) e.preventDefault();
-            if (key === 27 || (key === 8 && !isInput)) { closeModal(); return; }
-            const mItems = getModalItems();
-            let mi = mItems.indexOf(ae);
-            if (mi === -1) mi = 0;
-            if (key === 38 && mi > 0) mItems[mi - 1].focus();
-            else if (key === 40 && mi < mItems.length - 1) mItems[mi + 1].focus();
-            else if (key === 13 && ae) ae.click();
-            return;
-        }
-
-        // 空格
+        // 空格（非输入框时切换播放）
         if (key === 32 && !isInput) { e.preventDefault(); togglePlay(); return; }
 
-        // 输入框
+        // 输入框特殊处理
         if (isInput) {
             if (key === 13) {
                 e.preventDefault();
@@ -282,7 +236,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if ([37,38,39,40,13,27].includes(key)) e.preventDefault();
 
-        // Ctrl Zone
+        // ---- Ctrl Zone ----
         if (currentZone === 'ctrl') {
             switch (key) {
                 case 37: ctrlNav('left'); break;
@@ -302,17 +256,20 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        // List Zone
+        // ---- List Zone ----
         if (currentZone === 'list') {
             const items = getListItems();
             let ci = items.indexOf(ae);
             if (ci === -1) ci = 0;
 
             switch (key) {
-                case 38:
+                case 38: // ↑ 跳过操作按钮和删除按钮
                     if (ci > 0) {
                         let t = ci - 1;
-                        if (items[t] && items[t].classList.contains('del-btn')) t--;
+                        while (t >= 0 && (
+                            items[t].classList.contains('act-btn') ||
+                            items[t].classList.contains('del-btn')
+                        )) { t--; }
                         if (t >= 0) {
                             items[t].focus();
                             lastIndex.list = t;
@@ -322,10 +279,13 @@ document.addEventListener('DOMContentLoaded', () => {
                         }
                     }
                     break;
-                case 40:
+                case 40: // ↓ 跳过操作按钮和删除按钮
                     if (ci < items.length - 1) {
                         let t = ci + 1;
-                        if (items[t] && items[t].classList.contains('del-btn')) t++;
+                        while (t < items.length && (
+                            items[t].classList.contains('act-btn') ||
+                            items[t].classList.contains('del-btn')
+                        )) { t++; }
                         if (t < items.length) {
                             items[t].focus();
                             lastIndex.list = t;
@@ -333,9 +293,14 @@ document.addEventListener('DOMContentLoaded', () => {
                         }
                     }
                     break;
-                case 37:
-                    if (ae && ae.classList.contains('del-btn')) {
-                        if (ci > 0) { items[ci-1].focus(); lastIndex.list = ci-1; }
+                case 37: // ←
+                    if (ae.classList.contains('act-btn') || ae.classList.contains('del-btn')) {
+                        const songItem = ae.closest('.list-row')?.querySelector('.song-item');
+                        if (songItem) {
+                            songItem.focus();
+                            const idx = items.indexOf(songItem);
+                            if (idx >= 0) lastIndex.list = idx;
+                        }
                     } else {
                         lastIndex.list = ci;
                         currentZone = 'ctrl';
@@ -344,14 +309,25 @@ document.addEventListener('DOMContentLoaded', () => {
                         focusCtrl();
                     }
                     break;
-                case 39:
-                    if (ae && ae.classList.contains('song-item') &&
-                        items[ci+1] && items[ci+1].classList.contains('del-btn')) {
-                        items[ci+1].focus();
-                        lastIndex.list = ci+1;
+                case 39: // →
+                    if (ae.classList.contains('song-item')) {
+                        const row = ae.closest('.list-row');
+                        const firstAct = row?.querySelector('.act-btn, .del-btn');
+                        if (firstAct) {
+                            firstAct.focus();
+                            const idx = items.indexOf(firstAct);
+                            if (idx >= 0) lastIndex.list = idx;
+                        }
+                    } else if (ae.classList.contains('act-btn')) {
+                        const row = ae.closest('.list-row');
+                        const btns = row ? Array.from(row.querySelectorAll('.act-btn')) : [];
+                        const bi = btns.indexOf(ae);
+                        if (bi >= 0 && bi < btns.length - 1) {
+                            btns[bi + 1].focus();
+                        }
                     }
                     break;
-                case 13:
+                case 13: // Enter
                     if (ae) ae.click();
                     break;
             }
@@ -361,7 +337,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // ===================== 按钮事件 =====================
 
-    // 搜索
     btnSearch.addEventListener('click', () => {
         const kw = searchInput.value.trim();
         if (kw) {
@@ -374,7 +349,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // 音源（显示当前源名称）
     btnSource.addEventListener('click', () => {
         currentSourceIdx = (currentSourceIdx + 1) % SOURCES.length;
         const s = SOURCES[currentSourceIdx];
@@ -382,7 +356,6 @@ document.addEventListener('DOMContentLoaded', () => {
         showToast('音源: ' + s.name, true);
     });
 
-    // 模式
     btnMode.addEventListener('click', () => {
         currentModeIdx = (currentModeIdx + 1) % PLAY_MODES.length;
         const m = PLAY_MODES[currentModeIdx];
@@ -390,7 +363,6 @@ document.addEventListener('DOMContentLoaded', () => {
         showToast('模式: ' + m.desc, true);
     });
 
-    // 播放/暂停
     btnPlay.addEventListener('click', togglePlay);
     function togglePlay() {
         if (audio.src) {
@@ -419,18 +391,14 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    btnGoList.addEventListener('click', () => {
-        focusFirstSong();
-    });
+    btnGoList.addEventListener('click', () => { focusFirstSong(); });
 
-    // 视图切换（📋 播放列表 / 📂 搜索结果）
     btnView.addEventListener('click', () => {
         currentView = currentView === 'search' ? 'playlist' : 'search';
         updateViewIcon();
         renderCurrentView();
         showToast(currentView === 'search' ? '搜索结果' : '播放列表 (' + playlist.length + ')', true);
     });
-
     function updateViewIcon() {
         btnView.querySelector('.c-icon').innerText = currentView === 'playlist' ? '📋' : '📂';
     }
@@ -525,15 +493,66 @@ document.addEventListener('DOMContentLoaded', () => {
             const album = song.album || '';
             const globalIdx = (searchPage - 1) * PAGE_SIZE + i + 1;
 
+            const isPlaying = currentPlayIdx >= 0 && playlist[currentPlayIdx] &&
+                playlist[currentPlayIdx].id === song.id &&
+                playlist[currentPlayIdx].source === song.source;
+            if (isPlaying) item.classList.add('playing');
+
+            // 改动：歌曲名不用 scroll-text，直接文本截断
+            // 歌手/专辑保留 scroll-text，超长时滚动
             item.innerHTML =
                 '<span class="s-idx">' + globalIdx + '</span>' +
                 '<div class="s-info">' +
                     '<div class="s-name">' + esc(song.name || '未知歌曲') + '</div>' +
-                    '<div class="s-detail">' + esc(artist) + (album ? ' · ' + esc(album) : '') + '</div>' +
+                    '<div class="s-detail scroll-wrap"><span class="scroll-text">' + esc(artist) + (album ? ' · ' + esc(album) : '') + '</span></div>' +
                 '</div>';
 
-            item.addEventListener('click', () => openModal(song));
+            const actions = document.createElement('div');
+            actions.className = 'song-actions';
+
+            const playBtn = document.createElement('div');
+            playBtn.className = 'act-btn tv-focusable';
+            playBtn.tabIndex = 0;
+            playBtn.dataset.zone = 'list';
+            playBtn.innerHTML = '▶️';
+            playBtn.title = '直接播放';
+            playBtn.addEventListener('click', (ev) => {
+                ev.stopPropagation();
+                const exists = playlist.findIndex(s => s.id === song.id && s.source === song.source);
+                if (exists >= 0) {
+                    currentPlayIdx = exists;
+                } else {
+                    playlist.push(song);
+                    savePlaylist();
+                    currentPlayIdx = playlist.length - 1;
+                }
+                playSong(currentPlayIdx);
+                showToast('正在播放: ' + (song.name || ''), true);
+            });
+
+            const addBtn = document.createElement('div');
+            addBtn.className = 'act-btn act-add tv-focusable';
+            addBtn.tabIndex = 0;
+            addBtn.dataset.zone = 'list';
+            addBtn.innerHTML = '➕';
+            addBtn.title = '添加到列表';
+            addBtn.addEventListener('click', (ev) => {
+                ev.stopPropagation();
+                const exists = playlist.some(s => s.id === song.id && s.source === song.source);
+                if (exists) {
+                    showToast('该歌曲已在列表中');
+                } else {
+                    playlist.push(song);
+                    savePlaylist();
+                    showToast('已添加: ' + (song.name || ''), true);
+                }
+            });
+
+            actions.appendChild(playBtn);
+            actions.appendChild(addBtn);
+
             row.appendChild(item);
+            row.appendChild(actions);
             songListEl.appendChild(row);
         });
 
@@ -541,6 +560,8 @@ document.addEventListener('DOMContentLoaded', () => {
         pageInfo.innerText = '第 ' + searchPage + ' 页';
         btnPrevPage.classList.toggle('disabled', searchPage <= 1);
         btnNextPage.classList.toggle('disabled', !hasMorePages);
+
+        requestAnimationFrame(initAllMarquees);
     }
 
     function renderPlaylist() {
@@ -565,11 +586,13 @@ document.addEventListener('DOMContentLoaded', () => {
             const artist = artistStr(song);
             const album = song.album || '';
 
+            // 改动：歌曲名不用 scroll-text，直接文本截断
+            // 歌手/专辑保留 scroll-text，超长时滚动
             item.innerHTML =
                 '<span class="s-idx">' + (i + 1) + '</span>' +
                 '<div class="s-info">' +
                     '<div class="s-name">' + esc(song.name || '未知歌曲') + '</div>' +
-                    '<div class="s-detail">' + esc(artist) + (album ? ' · ' + esc(album) : '') + '</div>' +
+                    '<div class="s-detail scroll-wrap"><span class="scroll-text">' + esc(artist) + (album ? ' · ' + esc(album) : '') + '</span></div>' +
                 '</div>';
 
             item.addEventListener('click', () => playSong(i));
@@ -583,11 +606,14 @@ document.addEventListener('DOMContentLoaded', () => {
             del.title = '移除';
             del.addEventListener('click', (ev) => {
                 ev.stopPropagation();
+                const wasPlaying = (currentPlayIdx === i);
                 playlist.splice(i, 1);
                 savePlaylist();
                 showToast('已移除', true);
-                if (currentPlayIdx === i) {
-                    audio.pause(); audio.src = '';
+
+                if (wasPlaying) {
+                    audio.pause();
+                    audio.src = '';
                     btnPlay.querySelector('.c-icon').innerText = '▶️';
                     if (playlist.length > 0) {
                         currentPlayIdx = Math.min(i, playlist.length - 1);
@@ -605,11 +631,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
             songListEl.appendChild(row);
         });
+
+        requestAnimationFrame(initAllMarquees);
     }
 
     function resetUI() {
-        document.getElementById('song-title').innerText = 'Solara TV';
-        document.getElementById('song-artist').innerText = '准备播放';
+        // 改动：歌曲名直接文本，歌手保留 scroll-text
+        document.getElementById('song-title').textContent = 'Solara TV';
+        document.getElementById('song-artist').innerHTML = '<span class="scroll-text">准备播放</span>';
         lyricsContent.innerHTML = '<div class="lyrics-placeholder">等待播放...</div>';
         lyricsTitle.innerText = '歌词';
         progressFill.style.width = '0%';
@@ -626,13 +655,26 @@ document.addEventListener('DOMContentLoaded', () => {
         const song = playlist[index];
         const artist = artistStr(song);
 
-        document.getElementById('song-title').innerText = song.name || '未知歌曲';
-        document.getElementById('song-artist').innerText = artist;
+        // 改动：歌曲名直接文本，歌手保留 scroll-text 并初始化滚动
+        document.getElementById('song-title').textContent = song.name || '未知歌曲';
+        document.getElementById('song-artist').innerHTML = '<span class="scroll-text">' + esc(artist) + '</span>';
+        initMarquee(document.getElementById('song-artist'));
+
         lyricsContent.innerHTML = '<div class="lyrics-placeholder">加载中...</div>';
         lyricsTitle.innerText = song.name || '歌词';
         parsedLyrics = [];
 
         if (currentView === 'playlist') renderCurrentView();
+        else {
+            songListEl.querySelectorAll('.song-item').forEach((el, i) => {
+                const s = searchResults[i];
+                if (s && s.id === song.id && s.source === song.source) {
+                    el.classList.add('playing');
+                } else {
+                    el.classList.remove('playing');
+                }
+            });
+        }
 
         const source = song.target_source || song.source || 'netease';
 
@@ -700,7 +742,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // ===================== 上/下一首 =====================
+    // ===================== 上 / 下一首 =====================
     function playNext() {
         if (playlist.length === 0) return;
         const mode = PLAY_MODES[currentModeIdx].id;
@@ -772,8 +814,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // ===================== 初始化 =====================
     renderCurrentView();
-
-    // 初始化音源文字显示
     btnSource.querySelector('.c-text').innerText = SOURCES[currentSourceIdx].name;
 
     setTimeout(() => {

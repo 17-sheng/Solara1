@@ -9,6 +9,8 @@
 <body>
     <div id="tv-app">
         <div id="main-area">
+
+            <!-- 左栏：歌词 -->
             <div id="panel-lyrics">
                 <div id="lyrics-header">
                     <span class="lyrics-icon">🎵</span>
@@ -21,6 +23,7 @@
                 </div>
             </div>
 
+            <!-- 中栏：封面 + 控制 -->
             <div id="panel-center">
                 <div id="bg-blur"></div>
                 <div id="center-inner">
@@ -29,8 +32,10 @@
                             <img id="album-cover" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 400'%3E%3Crect fill='%231a1a2e' width='400' height='400'/%3E%3Ctext x='200' y='200' text-anchor='middle' dominant-baseline='central' font-size='80' fill='%23444'%3E🎵%3C/text%3E%3C/svg%3E" alt="封面">
                         </div>
                         <div id="song-info">
+                            <!-- 改动：歌曲名去掉 scroll-text 包裹，直接显示文本 -->
                             <div id="song-title">Solara TV</div>
-                            <div id="song-artist">准备播放</div>
+                            <!-- 改动：歌手保留 scroll-wrap + scroll-text，长文本自动滚动 -->
+                            <div id="song-artist" class="scroll-wrap"><span class="scroll-text">准备播放</span></div>
                         </div>
                     </div>
                     <div id="controls-area">
@@ -73,6 +78,7 @@
                 </div>
             </div>
 
+            <!-- 右栏：搜索 + 列表 -->
             <div id="panel-list">
                 <div id="search-bar">
                     <input id="search-input" type="text" placeholder="输入歌名/歌手..."
@@ -93,6 +99,7 @@
                     </div>
                 </div>
             </div>
+
         </div>
 
         <div id="bottom-bar">
@@ -105,26 +112,7 @@
     </div>
 
     <div id="toast" class="toast">提示</div>
-
-    <div id="action-modal" class="modal-overlay" style="display:none;">
-        <div class="modal-box">
-            <div class="modal-title" id="modal-song-name">歌曲名</div>
-            <div class="modal-btns">
-                <div id="modal-play" class="modal-btn tv-focusable" data-zone="modal" tabindex="0">
-                    <span class="c-icon">▶️</span> 直接播放
-                </div>
-                <div id="modal-add" class="modal-btn tv-focusable" data-zone="modal" tabindex="0">
-                    <span class="c-icon">➕</span> 添加到列表
-                </div>
-                <div id="modal-cancel" class="modal-btn modal-btn-cancel tv-focusable" data-zone="modal" tabindex="0">
-                    <span class="c-icon">✕</span> 取消
-                </div>
-            </div>
-        </div>
-    </div>
-
     <audio id="audio-player" preload="auto"></audio>
-
     <script src="js/tv.js"></script>
 </body>
 </html>
