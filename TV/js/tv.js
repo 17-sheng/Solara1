@@ -32,7 +32,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // ===================== 状态 =====================
     let currentSourceIdx = 0;
     let currentModeIdx   = 0;
-    let currentView      = 'playlist';
+    let currentView      = 'search';
     let searchResults    = [];
     let playlist         = JSON.parse(localStorage.getItem('tv_playlist') || '[]');
     let currentPlayIdx   = -1;
@@ -46,6 +46,9 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentZone      = 'ctrl';
     let lastIndex        = { ctrl: 0, list: 0 };
     let prevZone         = 'ctrl';
+
+    // 【新增】确认键防重复标志：keydown 处理过则 keyup 不再触发
+    let _enterHandled    = false;
 
     // ===================== DOM =====================
     const searchInput   = document.getElementById('search-input');
@@ -198,7 +201,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // ===================== 键盘事件 =====================
     document.addEventListener('keydown', (e) => {
-        const key = e.keyCode;
+        // 【修复①】const → let，兼容电视遥控器 DPAD_CENTER(keyCode=23)
+        let key = e.keyCode;
+        if (key === 23) key = 13;
+        // 标记 keydown 已处理确认键，防止 keyup 重复触发
+        if (key === 13) _enterHandled = true;
+
         const ae  = document.activeElement;
         const isInput = (ae === searchInput);
 
@@ -332,6 +340,20 @@ document.addEventListener('DOMContentLoaded', () => {
                     break;
             }
             return;
+        }
+    });
+
+    // 【修复②】兼容部分电视遥控器仅在 keyup 时触发确认键的情况
+    document.addEventListener('keyup', (e) => {
+        if (e.keyCode === 13 || e.keyCode === 23 || e.key === 'Enter') {
+            if (!_enterHandled) {
+                const ae = document.activeElement;
+                if (ae && ae !== document.body) {
+                    e.preventDefault();
+                    ae.click();
+                }
+            }
+            _enterHandled = false;
         }
     });
 
@@ -498,8 +520,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 playlist[currentPlayIdx].source === song.source;
             if (isPlaying) item.classList.add('playing');
 
-            // 改动：歌曲名不用 scroll-text，直接文本截断
-            // 歌手/专辑保留 scroll-text，超长时滚动
             item.innerHTML =
                 '<span class="s-idx">' + globalIdx + '</span>' +
                 '<div class="s-info">' +
@@ -586,8 +606,6 @@ document.addEventListener('DOMContentLoaded', () => {
             const artist = artistStr(song);
             const album = song.album || '';
 
-            // 改动：歌曲名不用 scroll-text，直接文本截断
-            // 歌手/专辑保留 scroll-text，超长时滚动
             item.innerHTML =
                 '<span class="s-idx">' + (i + 1) + '</span>' +
                 '<div class="s-info">' +
@@ -636,7 +654,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function resetUI() {
-        // 改动：歌曲名直接文本，歌手保留 scroll-text
         document.getElementById('song-title').textContent = 'Solara TV';
         document.getElementById('song-artist').innerHTML = '<span class="scroll-text">准备播放</span>';
         lyricsContent.innerHTML = '<div class="lyrics-placeholder">等待播放...</div>';
@@ -655,7 +672,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const song = playlist[index];
         const artist = artistStr(song);
 
-        // 改动：歌曲名直接文本，歌手保留 scroll-text 并初始化滚动
         document.getElementById('song-title').textContent = song.name || '未知歌曲';
         document.getElementById('song-artist').innerHTML = '<span class="scroll-text">' + esc(artist) + '</span>';
         initMarquee(document.getElementById('song-artist'));
@@ -713,7 +729,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             if (parsedLyrics.length > 0) {
                                 renderLyrics(parsedLyrics);
                             } else {
-                                const clean = d.lyric.replace(/\[.*?\]/g, '').trim();
+                                const clean = d.lyric.replace(/$$.*?$$/g, '').trim();
                                 lyricsContent.innerHTML = '<div class="lyrics-placeholder">' + (clean || '纯音乐，请欣赏') + '</div>';
                             }
                         } else {
@@ -773,12 +789,12 @@ document.addEventListener('DOMContentLoaded', () => {
     // ===================== 歌词 =====================
     function parseLRC(lrc) {
         const result = [];
-        const regex = /\[(\d{2}):(\d{2})(?:\.(\d{1,3}))?\]/;
+        const regex = /$$(\d{2}):(\d{2})(?:\.(\d{1,3}))?$$/;
         for (const line of lrc.split('\n')) {
             const m = line.match(regex);
             if (m) {
                 const t = parseInt(m[1])*60 + parseInt(m[2]) + (m[3] ? parseInt(m[3].padEnd(3,'0'))/1000 : 0);
-                const txt = line.replace(/\[.*?\]/g, '').trim();
+                const txt = line.replace(/$$.*?$$/g, '').trim();
                 if (txt) result.push({ time: t, text: txt });
             }
         }
