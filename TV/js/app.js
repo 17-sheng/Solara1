@@ -220,7 +220,8 @@ const NAVIGATOR = (() => {
             focusCtrl(1, 2);
         },
         getListItems: _getListFocusable,
-        focusListItem
+        focusListItem,
+        skipNonSong
     };
 })();
 
@@ -776,6 +777,7 @@ function bindKeyboard() {
             }
             if (key === 40) {
                 e.preventDefault();
+                State.set('focusZone', 'list');
                 const songs = document.querySelectorAll('.song-item.tv-focusable');
                 if (songs.length) {
                     songs[0].focus();
@@ -933,7 +935,13 @@ function bindButtons() {
 
     // 音频事件
     const audio = $('audio-player');
-    audio?.addEventListener('timeupdate', () => UI.updateProgress(audio));
+    audio?.addEventListener('timeupdate', () => {
+        UI.updateProgress(audio);
+        const ct = audio.currentTime;
+        const parsed = State.get('parsedLyrics');
+        const lc = document.getElementById('lyrics-content');
+        if (parsed && lc) LYRICS.highlight(ct, parsed, lc);
+    });
     audio?.addEventListener('ended', () => Player.next());
     audio?.addEventListener('error', () => {
         UI.showToast('播放出错，跳下一首');
