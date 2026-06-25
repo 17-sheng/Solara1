@@ -103,38 +103,38 @@ const State = {
    SECTION 3: API 层（含 fallback + 重试 + 错误处理）
    =================================================================== */
 const API = {
-    /** 通用 fetch 包装器：重试 + fallback */
-    async _request(endpoint, retries = CONFIG.MAX_RETRY) {
-        const urls = [endpoint, `${CONFIG.API_FALLBACK}${endpoint}`];
+    /** 通用 fetch 包装器：重试 */
+    async _request(url, retries = CONFIG.MAX_RETRY) {
         for (let attempt = 0; attempt < retries; attempt++) {
-            for (const url of urls) {
-                try {
-                    const res = await fetch(url, { signal: AbortSignal.timeout(8000) });
-                    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-                    return await res.json();
-                } catch (_) { /* try next url or retry */ }
+            try {
+                const res = await fetch(url, { signal: AbortSignal.timeout(8000) });
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                return await res.json();
+            } catch (_) {
+                if (attempt < retries - 1) await new Promise(r => setTimeout(r, CONFIG.RETRY_DELAY * (attempt + 1)));
             }
-            if (attempt < retries - 1) await new Promise(r => setTimeout(r, CONFIG.RETRY_DELAY * (attempt + 1)));
         }
         throw new Error('API 请求失败');
     },
 
     async search(keyword, sourceId, page = 1) {
-        return this._request(
-            `?types=search&source=${sourceId}&name=${encodeURIComponent(keyword)}&count=${CONFIG.PAGE_SIZE}&pages=${page}`
-        );
+        const qs = `types=search&source=${sourceId}&name=${encodeURIComponent(keyword)}&count=${CONFIG.PAGE_SIZE}&pages=${page}`;
+        return this._request(`${CONFIG.API_BASE}?${qs}`);
     },
 
     async getUrl(sourceId, songId) {
-        return this._request(`?types=url&source=${sourceId}&id=${songId}&br=320`);
+        const qs = `types=url&source=${sourceId}&id=${songId}&br=320`;
+        return this._request(`${CONFIG.API_BASE}?${qs}`);
     },
 
     async getPic(sourceId, picId, size = 500) {
-        return this._request(`?types=pic&source=${sourceId}&id=${picId}&size=${size}`);
+        const qs = `types=pic&source=${sourceId}&id=${picId}&size=${size}`;
+        return this._request(`${CONFIG.API_BASE}?${qs}`);
     },
 
     async getLyric(sourceId, lyricId) {
-        return this._request(`?types=lyric&source=${sourceId}&id=${lyricId}`);
+        const qs = `types=lyric&source=${sourceId}&id=${lyricId}`;
+        return this._request(`${CONFIG.API_BASE}?${qs}`);
     }
 };
 
