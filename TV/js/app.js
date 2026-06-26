@@ -432,6 +432,33 @@ const Renderer = {
 
         row.appendChild(item);
 
+        // 点击歌曲行 → 播放（搜索模式和播放列表模式都适用）
+        item.addEventListener('click', () => {
+            if (showActions) {
+                // 搜索模式：先添加到列表，再播放
+                const pl = State.get('playlist');
+                const ex = pl.findIndex(s => s.id === song.id && s.source === song.source);
+                if (ex >= 0) {
+                    State.set('currentPlayIdx', ex);
+                } else {
+                    pl.push(song);
+                    State.set('playlist', pl);
+                    State.set('currentPlayIdx', pl.length - 1);
+                    State.save();
+                }
+                Player.play(State.get('currentPlayIdx'));
+                UI.showToast(`正在播放: ${song.name || ''}`, true);
+            } else {
+                // 播放列表模式：直接播放
+                const pl = State.get('playlist');
+                const i = pl.findIndex(s => s.id === song.id && s.source === song.source);
+                if (i >= 0) {
+                    State.set('currentPlayIdx', i);
+                    Player.play(i);
+                }
+            }
+        });
+
         if (showActions) {
             const actions = document.createElement('div');
             actions.className = 'song-actions';
@@ -470,6 +497,41 @@ const Renderer = {
             actions.appendChild(playBtn);
             actions.appendChild(addBtn);
             row.appendChild(actions);
+        } else {
+            // 播放列表模式：渲染删除按钮
+            const delBtn = document.createElement('div');
+            delBtn.className = 'del-btn tv-focusable';
+            delBtn.tabIndex = 0;
+            delBtn.dataset.zone = 'list';
+            delBtn.innerHTML = '✕';
+            delBtn.title = '移除';
+            delBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const pl = State.get('playlist');
+                const i = pl.findIndex(s => s.id === song.id && s.source === song.source);
+                if (i >= 0) {
+                    const wasPlaying = (State.get('currentPlayIdx') === i);
+                    pl.splice(i, 1);
+                    State.set('playlist', pl);
+                    let newIdx = State.get('currentPlayIdx');
+                    if (wasPlaying) {
+                        if (pl.length > 0) {
+                            newIdx = Math.min(i, pl.length - 1);
+                            State.set('currentPlayIdx', newIdx);
+                            Player.play(newIdx);
+                        } else {
+                            State.set('currentPlayIdx', -1);
+                            Player.reset();
+                        }
+                    } else if (i < State.get('currentPlayIdx')) {
+                        State.set('currentPlayIdx', newIdx - 1);
+                    }
+                    State.save();
+                    UI.showToast('已移除', true);
+                    Renderer.renderPlaylist();
+                }
+            });
+            row.appendChild(delBtn);
         }
 
         return row;
@@ -845,8 +907,13 @@ function bindKeyboard() {
                         if (si) { si.focus(); State.set('listFocusIdx', items.indexOf(si)); }
                     } else {
                         State.set('focusZone', 'ctrl');
-                        State.set('ctrlPos', ae === document.getElementById('search-input') ? { row: 0, col: 4 } : { row: 1, col: 2 });
-                        NAVIGATOR.enterCtrlFromLeft();
+                        const isInput = ae === document.getElementById('search-input');
+                        State.set('ctrlPos', isInput ? { row: 0, col: 4 } : { row: 1, col: 2 });
+                        if (isInput) {
+                            NAVIGATOR.focusCtrl(0, 4);
+                        } else {
+                            NAVIGATOR.enterCtrlFromLeft();
+                        }
                     }
                     break;
                 }
