@@ -1,4 +1,4 @@
-# 🎶 Solara 2.0（光域）
+# 🎶 Solara 2.0（光域）1
 
 <p align="center">
   <a href="https://trendshift.io/repositories/23480" target="_blank"><img src="https://trendshift.io/api/badge/trendshift/repositories/23480/daily?language=JavaScript" alt="#1 JavaScript Repository Of The Day" width="250" height="55"/></a>
